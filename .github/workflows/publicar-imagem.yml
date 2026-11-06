@@ -30,7 +30,7 @@ jobs:
             exit 1
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "IMAGE=ghcr.io/lucassfontes/zimaos-network-manager-linux" >> "$GITHUB_ENV"
+          echo "IMAGE=ghcr.io/lucassfontes/Network-Manager" >> "$GITHUB_ENV"
 
       - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v3
