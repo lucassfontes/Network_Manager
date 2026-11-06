@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1425">
+  <meta name="description" content="Painel local para visualizar e administrar as interfaces de rede do Linux com NetworkManager.">
+  <title>Gerenciador de Rede Linux · v0.3.9</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+  <link rel="stylesheet" href="/assets/app.css?v=0.3.9">
+  <script src="/assets/app.js?v=0.3.9" defer></script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8.5a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0M12 20h.01"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9zM9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+  <symbol id="i-ethernet" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 3v5h8V3M9 8v4M12 8v4M15 8v4M8 16h8"/></symbol>
+  <symbol id="i-hotspot" viewBox="0 0 24 24"><path d="M5.5 19a9.5 9.5 0 0 1 0-14M18.5 5a9.5 9.5 0 0 1 0 14M8.5 16a5.5 5.5 0 0 1 0-8M15.5 8a5.5 5.5 0 0 1 0 8"/><circle cx="12" cy="12" r="1.5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.5 10.5 7-4m-7 7 7 4"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4m8-8 4 4-4 4m-3-11-2 14"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-5L4 8M4 4v4h4M4 13a8 8 0 0 0 14 5l2-2m0 4v-4h-4"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5m0 3h.01"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-7-7 7 7-7 7"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-9 11h7l-1 9 10-12h-7l0-8Z"/></symbol>
+</svg>
+<div class="app-shell">
+  <div class="mobile-shade" id="mobileShade"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-icon"><svg class="icon"><use href="#i-wifi"/></svg></div>
+      <div class="brand-text"><strong>Network<span>Manager</span></strong><small>GERENCIADOR DE REDE LINUX</small></div>
+    </div>
+    <div class="sidebar-label">PAINEL DE CONTROLE</div>
+    <nav class="side-nav" aria-label="Menu principal">
+      <button class="nav-link active" data-page="overview"><svg class="icon"><use href="#i-grid"/></svg><span>Visão geral</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <button class="nav-link" data-page="devices"><svg class="icon"><use href="#i-cpu"/></svg><span>Dispositivos</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <button class="nav-link" data-page="wifi"><svg class="icon"><use href="#i-wifi"/></svg><span>Redes Wi-Fi</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <button class="nav-link" data-page="hotspot"><svg class="icon"><use href="#i-hotspot"/></svg><span>Hotspot</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <button class="nav-link" data-page="share"><svg class="icon"><use href="#i-share"/></svg><span>Compartilhar internet</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <div class="nav-group-divider"></div>
+      <div class="sidebar-label compact">FERRAMENTAS</div>
+      <button class="nav-link" data-page="ip"><svg class="icon"><use href="#i-sliders"/></svg><span>Endereços IP</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <button class="nav-link" data-page="status"><svg class="icon"><use href="#i-code"/></svg><span>Diagnóstico</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <button class="nav-link" data-page="settings"><svg class="icon"><use href="#i-lock"/></svg><span>Acesso administrativo</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-safety"><svg class="icon"><use href="#i-lock"/></svg><div><strong>Acesso protegido</strong><small>No ZimaOS, use token na rede local.</small></div></div>
+      <div class="sidebar-version"><span>Linux · Docker</span><strong>v0.3.9</strong></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><button class="icon-button menu-button" id="menuBtn" aria-label="Abrir menu"><svg class="icon"><use href="#i-menu"/></svg></button><span class="breadcrumb">PAINEL DE REDE</span><svg class="icon breadcrumb-sep"><use href="#i-chevron"/></svg><strong id="currentPageLabel">Visão geral</strong></div>
+      <div class="topbar-right"><span class="top-connection" id="topConnection"><i class="pulse"></i> Verificando conexão</span><button class="button button-ghost button-small" id="refreshAll"><svg class="icon"><use href="#i-refresh"/></svg><span>Atualizar</span></button></div>
+    </header>
+    <div class="content">
+      <div class="page-head"><div><span class="eyebrow">REDE DO SEU COMPUTADOR</span><h1 id="pageTitle">Visão geral</h1><p id="pageSubtitle">Acompanhe suas conexões e os dispositivos disponíveis, sem informações complicadas.</p></div><div class="last-sync">Atualizado: <span id="lastSync">aguardando...</span></div></div>
+      <div class="alert-banner"><svg class="icon"><use href="#i-info"/></svg><div><strong>Modo local de testes</strong><span>Alterar o Wi-Fi ou criar um hotspot pode desconectar este computador. Não faça isso durante acesso remoto.</span></div></div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+      <section class="page active" id="page-overview">
+        <div class="metrics">
+          <article class="metric-card"><div class="metric-top"><span>ESTADO DA INTERNET</span><span class="metric-icon blue"><svg class="icon"><use href="#i-globe"/></svg></span></div><div class="metric-value" id="metricInternet">Verificando...</div><p id="metricInternetDesc">Consultando o sistema</p></article>
+          <article class="metric-card"><div class="metric-top"><span>REDE WI-FI ATUAL</span><span class="metric-icon purple"><svg class="icon"><use href="#i-wifi"/></svg></span></div><div class="metric-value truncate" id="metricWifi">—</div><p id="metricWifiDesc">Nenhuma informação</p></article>
+          <article class="metric-card"><div class="metric-top"><span>PLACAS FÍSICAS</span><span class="metric-icon green"><svg class="icon"><use href="#i-cpu"/></svg></span></div><div class="metric-value" id="metricDevices">—</div><p id="metricDevicesDesc">Wi-Fi e cabo</p></article>
+          <article class="metric-card"><div class="metric-top"><span>REDE COMPARTILHADA</span><span class="metric-icon orange"><svg class="icon"><use href="#i-hotspot"/></svg></span></div><div class="metric-value" id="metricHotspot">Não detectado</div><p id="metricHotspotDesc">Ponto de acesso</p></article>
+        </div>
+        <div class="dashboard-grid">
+          <div class="panel"><div class="panel-head"><div><h2>Suas placas de rede</h2><p>Conexões físicas encontradas no Linux</p></div><button class="text-action" data-goto="devices">Ver todas <svg class="icon"><use href="#i-arrow"/></svg></button></div><div id="overviewDevices" class="device-list"><div class="loading">Carregando dispositivos...</div></div></div>
+          <div class="panel"><div class="panel-head"><div><h2>Conexão principal</h2><p>Por onde o computador acessa a internet</p></div></div><div class="route-visual"><div class="route-symbol"><svg class="icon"><use href="#i-globe"/></svg></div><div class="route-label"><small>ROTA PRINCIPAL</small><strong id="overviewRouteName">Verificando...</strong><span id="overviewRouteAddress">Aguardando dados de rede</span></div></div><div class="quick-links"><button class="shortcut" data-goto="wifi"><span class="shortcut-icon"><svg class="icon"><use href="#i-wifi"/></svg></span><span>Buscar redes Wi-Fi</span><svg class="icon"><use href="#i-chevron"/></svg></button><button class="shortcut" data-goto="hotspot"><span class="shortcut-icon"><svg class="icon"><use href="#i-hotspot"/></svg></span><span>Criar hotspot</span><svg class="icon"><use href="#i-chevron"/></svg></button><button class="shortcut" data-goto="ip"><span class="shortcut-icon"><svg class="icon"><use href="#i-sliders"/></svg></span><span>Ver endereços IP</span><svg class="icon"><use href="#i-chevron"/></svg></button></div></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-devices"><div class="panel"><div class="panel-head"><div><h2>Placas físicas</h2><p>Wi-Fi, Ethernet e adaptadores USB detectados automaticamente</p></div><button class="button button-secondary button-small" data-refresh="devices"><svg class="icon"><use href="#i-refresh"/></svg> Atualizar</button></div><div class="device-grid" id="physicalDevices"><div class="loading">Carregando...</div></div></div><div class="panel minor-panel"><details><summary>Interfaces virtuais e internas <span id="virtualCount">(0)</span></summary><p class="hint">Itens como docker0, lo e Wi-Fi P2P são componentes do Linux. Eles não são placas físicas adicionais.</p><div id="virtualDevices" class="virtual-list"></div></details></div></section>
+
+      <section class="page" id="page-wifi"><div class="split-grid"><div class="panel"><div class="panel-head"><div><h2>Redes encontradas</h2><p>Selecione uma rede para preencher os dados de conexão</p></div><button class="button button-secondary button-small" id="scanBtn"><svg class="icon"><use href="#i-refresh"/></svg> Procurar</button></div><label class="field-label" for="scanDevice">Placa Wi-Fi utilizada na busca</label><select id="scanDevice" class="field-input"><option value="">Todas as placas Wi-Fi</option></select><div id="wifiNetworks" class="networks-list"><div class="loading">Procurando redes disponíveis...</div></div></div><div class="panel form-panel"><div class="panel-head"><div><h2>Conectar ao Wi-Fi</h2><p>Informe os dados da rede escolhida</p></div></div><form id="wifiForm" novalidate><label class="field-label" for="wifiDevice">Placa de rede</label><select id="wifiDevice" class="field-input" required></select><label class="field-label" for="wifiSsid">Nome da rede (SSID)</label><input id="wifiSsid" class="field-input" placeholder="Escolha uma rede ao lado" required maxlength="128"><label class="field-label" for="wifiPassword">Senha da rede</label><div class="password-row"><input id="wifiPassword" class="field-input" type="password" autocomplete="off" placeholder="Deixe em branco para rede aberta"><button type="button" class="password-toggle" data-toggle-password="wifiPassword" aria-label="Mostrar ou ocultar senha"><svg class="icon"><use href="#i-eye"/></svg></button></div><button class="button button-primary button-wide" type="submit"><svg class="icon"><use href="#i-wifi"/></svg> Conectar</button><button type="button" class="button button-danger-outline button-wide" id="disconnectBtn">Desconectar placa selecionada</button></form><div class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Conectar ou desconectar pode interromper sua conexão atual.</span></div></div></div></section>
+
+      <section class="page" id="page-hotspot">
+        <div class="panel hotspot-active-panel">
+          <div class="panel-head">
+            <div><h2>Hotspots em funcionamento</h2><p>Desligue apenas o ponto de acesso escolhido, sem apagar o perfil salvo.</p></div>
+            <button class="button button-secondary button-small" id="refreshHotspots" type="button"><svg class="icon"><use href="#i-refresh"/></svg> Atualizar</button>
+          </div>
+          <div class="hotspot-list" id="activeHotspots" aria-live="polite"><div class="loading">Verificando hotspots ativos...</div></div>
+        </div>
+        <div class="split-grid"><div class="panel form-panel"><div class="panel-head"><div><h2>Criar um ponto de acesso</h2><p>Compartilhe uma rede Wi-Fi usando uma placa compatível</p></div></div><form id="hotspotForm" novalidate><label class="field-label" for="hotspotDevice">Placa que transmitirá o Wi-Fi</label><select id="hotspotDevice" class="field-input" required></select><div class="capability" id="hotspotCapability">Selecione uma placa para verificar o suporte.</div><label class="field-label" for="hotspotSsid">Nome da nova rede (SSID)</label><input id="hotspotSsid" class="field-input" placeholder="Ex.: Meu Hotspot" minlength="1" maxlength="32" required><label class="field-label" for="hotspotPassword">Senha da nova rede</label><div class="password-row"><input id="hotspotPassword" class="field-input" type="password" autocomplete="new-password" placeholder="Entre 8 e 63 caracteres" minlength="8" maxlength="63" required><button type="button" class="password-toggle" data-toggle-password="hotspotPassword" aria-label="Mostrar ou ocultar senha"><svg class="icon"><use href="#i-eye"/></svg></button></div><button type="submit" class="button button-primary button-wide"><svg class="icon"><use href="#i-hotspot"/></svg> Criar e ativar hotspot</button></form></div><div class="panel explainer-panel"><div class="explainer-icon"><svg class="icon"><use href="#i-hotspot"/></svg></div><h2>Como funciona?</h2><p>O NetworkManager tenta criar uma rede sem fio na placa escolhida, usando a conexão padrão do computador para compartilhar internet.</p><div class="steps"><div><span class="step-num">1</span><span>Uma conexão existente fornece internet.</span></div><div><span class="step-num">2</span><span>Uma placa compatível transmite o novo Wi-Fi.</span></div><div><span class="step-num">3</span><span>Seu celular ou outro aparelho se conecta à rede criada.</span></div></div><div class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Uma placa pode anunciar suporte a hotspot e ainda não permitir Wi-Fi e hotspot ao mesmo tempo. Teste localmente.</span></div></div></div></section>
+
+      <section class="page" id="page-share"><div class="panel"><div class="panel-head"><div><h2>Compartilhamento de internet</h2><p>Veja a rota de saída que o NetworkManager poderá utilizar</p></div></div><div class="share-flow"><div class="flow-node"><span class="flow-circle blue"><svg class="icon"><use href="#i-globe"/></svg></span><strong>Internet</strong><small>Conexão principal</small></div><span class="flow-arrow"><svg class="icon"><use href="#i-arrow"/></svg></span><div class="flow-node"><span class="flow-circle purple"><svg class="icon"><use href="#i-cpu"/></svg></span><strong>Seu Linux</strong><small id="shareSource">Identificando origem...</small></div><span class="flow-arrow"><svg class="icon"><use href="#i-arrow"/></svg></span><div class="flow-node"><span class="flow-circle green"><svg class="icon"><use href="#i-hotspot"/></svg></span><strong>Hotspot</strong><small>Placa compatível</small></div></div><div class="info-pairs"><div><small>INTERFACE DE SAÍDA</small><strong id="shareInterface">—</strong></div><div><small>GATEWAY PADRÃO</small><strong id="shareGateway">—</strong></div></div><div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>A escolha manual da origem da internet e o roteamento avançado ainda não estão disponíveis. O hotspot usa a rota padrão ativa.</span></div><button class="button button-primary" data-goto="hotspot">Ir para Hotspot <svg class="icon"><use href="#i-arrow"/></svg></button></div></section>
+
+      <section class="page" id="page-ip"><div class="panel"><div class="panel-head"><div><h2>Endereços IP da interface</h2><p>Consulte IPv4, IPv6, gateway e DNS sem modificar a conexão</p></div><button class="button button-secondary button-small" id="refreshIp"><svg class="icon"><use href="#i-refresh"/></svg> Atualizar</button></div><label class="field-label" for="ipDevice">Selecione uma interface de rede</label><select id="ipDevice" class="field-input ip-select"></select><div class="ip-grid" id="ipDetails"><div class="loading">Selecione uma interface.</div></div><div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>Nesta versão, a tela de IP é somente para consulta. A edição de DHCP/IP estático ainda não foi implementada — não exibimos botões que não funcionam.</span></div></div></section>
+
+      <section class="page" id="page-status"><div class="split-grid"><div class="panel"><div class="panel-head"><div><h2>Estado do NetworkManager</h2><p>Diagnóstico simplificado do serviço do Linux</p></div><button class="button button-secondary button-small" data-refresh="status"><svg class="icon"><use href="#i-refresh"/></svg> Verificar</button></div><div class="health-display" id="healthDisplay"><div class="loading">Verificando serviço...</div></div><div class="info-pairs stacked"><div><small>ROTA DE INTERNET</small><strong id="statusRoute">—</strong></div></div></div><div class="panel"><div class="panel-head"><div><h2>Conexões ativas</h2><p>Conexões que o Linux considera em uso</p></div></div><div class="connections-list" id="connectionsList"><div class="loading">Carregando conexões...</div></div></div></div></section>
+
+      <section class="page" id="page-settings"><div class="split-grid"><div class="panel form-panel"><div class="panel-head"><div><h2>Autorização para alterações</h2><p>Necessária para alterar a rede e consultar dados no ZimaOS</p></div></div><label class="field-label" for="adminToken">Token de administração</label><div class="password-row"><input id="adminToken" class="field-input" type="password" autocomplete="off" placeholder="Cole PANEL_TOKEN do arquivo .env"><button type="button" class="password-toggle" data-toggle-password="adminToken" aria-label="Mostrar ou ocultar token"><svg class="icon"><use href="#i-eye"/></svg></button></div><button class="button button-primary button-wide" id="saveToken"><svg class="icon"><use href="#i-check"/></svg> Usar token nesta aba</button><button class="button button-secondary button-wide" id="clearToken">Esquecer token desta aba</button><div class="capability" id="tokenState">Nenhum token configurado para esta aba.</div></div><div class="panel explainer-panel"><div class="explainer-icon"><svg class="icon"><use href="#i-lock"/></svg></div><h2>Onde encontrar o token?</h2><p>Abra a pasta onde você extraiu o projeto e localize o arquivo oculto <code>.env</code>. Copie somente o valor depois de <code>PANEL_TOKEN=</code>.</p><div class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Não envie esse token para outras pessoas. Ele autoriza mudanças na rede do computador. No ZimaOS, a rede local exige token também para consultas. Não exponha a porta à internet.</span></div></div></div></section>
+
+      <footer class="footer"><span>ZimaOS Network Manager <strong>v0.3.9</strong></span><span>Linux · NetworkManager · Acesso local</span></footer>
+    </div>
+  </main>
+</div>
+
+<!-- Confirmações internas do aplicativo: nunca abrir diálogo do navegador. -->
+<div id="panelConfirm" class="confirm-backdrop" hidden>
+  <div class="confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+    <button type="button" class="confirm-close" id="confirmClose" aria-label="Fechar confirmação">×</button>
+    <div class="confirm-symbol"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg></div>
+    <span class="confirm-eyebrow">CONFIRMAÇÃO DE SEGURANÇA</span>
+    <h2 id="confirmTitle">Confirmar alteração?</h2>
+    <p id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button type="button" class="button button-secondary" id="confirmCancel">Cancelar</button>
+      <button type="button" class="button button-primary" id="confirmAccept">Confirmar</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

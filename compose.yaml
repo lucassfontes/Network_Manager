@@ -1,0 +1,24 @@
+name: zimaos-network-manager
+
+services:
+  network-panel:
+    build: .
+    # Tag versionada para distinguir a imagem nova da antiga (nmcli 1.52).
+    image: zimaos-network-manager:0.3.9
+    network_mode: host
+    # Permite o acesso ao D-Bus do host, bloqueado por docker-default em alguns Linux.
+    # Somente ESTE contêiner fica sem confinamento AppArmor; outros mantêm a política.
+    # Este contêiner tem acesso sensível ao NetworkManager. Não exponha o painel à internet.
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      - /sys/class/net:/sys/class/net:ro
+      - /sys/class/ieee80211:/sys/class/ieee80211:ro
+    environment:
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+      - PANEL_TOKEN=${PANEL_TOKEN:?Defina PANEL_TOKEN no arquivo .env}
+      - PANEL_BIND_HOST=${PANEL_BIND_HOST:-127.0.0.1}
+      - PANEL_PORT=${PANEL_PORT:-8080}
+      - PANEL_REQUIRE_READ_TOKEN=${PANEL_REQUIRE_READ_TOKEN:-0}
+    restart: unless-stopped

@@ -1,0 +1,45 @@
+# Instalar no ZimaOS: Apps > Instalar aplicativo personalizado > Importar Compose.
+# Troque PANEL_TOKEN por um segredo aleatorio com pelo menos 24 caracteres.
+# Imagem so existira apos publicar este projeto no GitHub/GHCR.
+name: zimaos-network-manager
+services:
+  network-panel:
+    image: ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.9
+    container_name: zimaos-network-manager
+    network_mode: host
+    restart: unless-stopped
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      - /sys/class/net:/sys/class/net:ro
+      - /sys/class/ieee80211:/sys/class/ieee80211:ro
+    environment:
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+      PANEL_BIND_HOST: "0.0.0.0"
+      PANEL_PORT: "8687"
+      PANEL_REQUIRE_READ_TOKEN: "1"
+      PANEL_TOKEN: "SUBSTITUA_POR_TOKEN_ALEATORIO_FORTE"
+x-casaos:
+  id: zimaos-network-manager
+  main: network-panel
+  index: /
+  port_map: "8687"
+  scheme: http
+  icon: https://raw.githubusercontent.com/lucassfontes/ZimaOS-Network-Manager-Linux/main/app/assets/icon.svg
+  title:
+    en_US: ZimaOS Network Manager
+    pt_BR: Gerenciador de Rede Linux
+  tagline:
+    en_US: Manage Linux networks and Wi-Fi hotspots
+    pt_BR: Gerencie redes Linux e hotspots Wi-Fi
+  description:
+    en_US: Local network dashboard for Linux NetworkManager. Use only on a trusted LAN.
+    pt_BR: Painel de redes Linux com NetworkManager. Use apenas em rede local confiavel.
+  category: Utilities
+  architectures:
+    - amd64
+  version: "0.3.9"
+  author: lucassfontes
+  developer: lucassfontes
+  repo: https://github.com/lucassfontes/ZimaOS-Network-Manager-Linux
