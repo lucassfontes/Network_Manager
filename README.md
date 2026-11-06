@@ -1,4 +1,4 @@
-# ZimaOS Network Manager — v0.3.9
+# ZimaOS Network Manager — v0.3.10
 
 Painel web de redes Wi-Fi, Ethernet, hotspot e status do NetworkManager em **Linux**. Interface visual com menu lateral, mensagens internas, listagem de hotspots ativos e opção de pará-los. **Não é um gerenciador de IP estático/DHCP:** a tela IP continua em modo de leitura.
 
@@ -9,8 +9,8 @@ Painel web de redes Wi-Fi, Ethernet, hotspot e status do NetworkManager em **Lin
 Após publicar o repositório:
 
 ```bash
-git clone https://github.com/lucassfontes/ZimaOS-Network-Manager-Linux.git
-cd ZimaOS-Network-Manager-Linux
+git clone https://github.com/lucassfontes/Network_Manager.git
+cd Network_Manager
 chmod +x iniciar.sh parar.sh
 ./iniciar.sh
 ```
@@ -19,8 +19,13 @@ O script cria um token forte em `.env` se ele não existir, pede `sudo` se o Doc
 
 ## Instalar diretamente na interface do ZimaOS (imagem GHCR)
 
-1. Publique os arquivos deste projeto em um repositório público com o nome **`lucassfontes/ZimaOS-Network-Manager-Linux`** (ou ajuste os caminhos de imagem e ícone no Compose).
-2. Em GitHub, abra **Actions → Publicar imagem Docker no GHCR → Run workflow**. Aguarde o workflow publicar a imagem `ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.9`.
+1. Publique os arquivos deste projeto em um repositório público **`lucassfontes/Network_Manager`**.
+2. No GitHub, abra **Actions → Publicar imagem Docker no GHCR**. O novo workflow executa automaticamente ao enviar alterações à `main`; aguarde a publicação de a imagem `ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.10`.
+
+**Workflow verde não garante publicação:** o workflow padrão `Docker Image CI` (se presente no repositório) faz apenas `docker build`. O que publica de verdade é o workflow `Publicar imagem Docker no GHCR` deste projeto. Se só aparecer `Docker Image CI`, confirme que `.github/workflows/publicar-imagem.yml` foi enviado para o GitHub.
+
+**Ao atualizar o GitHub:** envie os arquivos extraídos para a **raiz** do repositório, incluindo a pasta oculta `.github`. O workflow dispara no push à branch `main`. Se a política do repositório bloquear execução ou pacotes, configure em Settings → Actions; confirme o resultado em Actions e em Packages.
+
 3. **Faça o pacote GHCR ficar público:** GitHub → Packages → imagem publicada → Package settings → Change visibility → Public. Sem isso, o ZimaOS pode receber erro `denied` ao fazer `pull`.
 4. Abra `deploy/zimaos-compose.yaml` e **troque o `PANEL_TOKEN` pelo seu próprio segredo aleatório com 24+ caracteres**. Por exemplo, gere no Linux com `openssl rand -hex 24`. Nunca publique seu Compose preenchido com o token.
 5. No ZimaOS: **Apps / App Center → Instalar aplicativo personalizado → Importar Compose** e cole o conteúdo do arquivo `deploy/zimaos-compose.yaml`, já com seu token. Verifique a imagem e instale.
@@ -30,16 +35,16 @@ O exemplo usa a porta **8687** para reduzir o risco de colisão com apps que usa
 
 **Importante:** o exemplo é uma *instalação personalizada*, não uma publicação automática na loja oficial do ZimaOS. A funcionalidade depende de NetworkManager e acesso D-Bus compatível no host. A criação/encerramento de hotspot não foi validada no seu hardware ZimaOS.
 
-## Como publicar o GitHub sem perder o controle de versão
+## Como publicar no GitHub sem perder o controle de versão
 
 Para colocar os arquivos no repositório vazio a partir de um PC Linux:
 
 ```bash
 git init
 git add .
-git commit -m "ZimaOS Network Manager v0.3.9"
+git commit -m "ZimaOS Network Manager v0.3.10"
 git branch -M main
-git remote add origin https://github.com/lucassfontes/ZimaOS-Network-Manager-Linux.git
+git remote add origin https://github.com/lucassfontes/Network_Manager.git
 git push -u origin main
 ```
 

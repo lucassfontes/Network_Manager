@@ -18,7 +18,7 @@
 .hotspot-stop{flex:none;white-space:nowrap}
 @media(max-width:610px){.hotspot-entry{flex-wrap:wrap}.hotspot-entry-info{flex:1}.hotspot-stop{width:100%;justify-content:center}}
 
-/* v0.3.9: notificações e confirmações internas, sem diálogos nativos do navegador. */
+/* v0.3.10: notificações e confirmações internas, sem diálogos nativos do navegador. */
 .toast.show{display:flex;align-items:flex-start;gap:12px;min-width:270px;white-space:pre-wrap;overflow-wrap:anywhere;animation:panel-pop .18s ease-out}
 .toast-icon{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:8px;background:#1e6454;color:#ccffe9;font-size:18px;font-weight:800}
 .toast.warn .toast-icon{background:#765a2c;color:#fff0cf}

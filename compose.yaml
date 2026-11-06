@@ -4,7 +4,7 @@ services:
   network-panel:
     build: .
     # Tag versionada para distinguir a imagem nova da antiga (nmcli 1.52).
-    image: zimaos-network-manager:0.3.9
+    image: zimaos-network-manager:0.3.10
     network_mode: host
     # Permite o acesso ao D-Bus do host, bloqueado por docker-default em alguns Linux.
     # Somente ESTE contêiner fica sem confinamento AppArmor; outros mantêm a política.

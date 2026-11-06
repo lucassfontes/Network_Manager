@@ -13,7 +13,7 @@ class DockerCompatibilityTests(unittest.TestCase):
         compose = (ROOT / 'compose.yaml').read_text()
         start = (ROOT / 'iniciar.sh').read_text()
         self.assertIn('FROM python:3.12-slim-bookworm', dockerfile)
-        self.assertIn('image: zimaos-network-manager:0.3.9', compose)
+        self.assertIn('image: zimaos-network-manager:0.3.10', compose)
         self.assertIn('compose up --build --force-recreate -d', start)
 
     def test_incompatible_property_has_actionable_diagnostic(self):
@@ -30,7 +30,7 @@ class DockerCompatibilityTests(unittest.TestCase):
                 with self.assertRaises(HTTPException) as cm:
                     main.hotspot(main.Hotspot(device='wlp5s0',ssid='MinhaRede',password='Senha123456'),x_panel_token='teste-aleatorio-com-mais-24-caracteres')
             self.assertEqual(cm.exception.status_code, 503)
-            self.assertIn('v0.3.9', cm.exception.detail)
+            self.assertIn('v0.3.10', cm.exception.detail)
         finally:
             main.TOKEN = previous
 

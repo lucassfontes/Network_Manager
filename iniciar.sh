@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 
-VERSAO="0.3.9"
+VERSAO="0.3.10"
 # Mantém a janela aberta, inclusive quando ocorre um erro.
 ao_sair() {
   resultado=$?
@@ -78,7 +78,7 @@ fi
 # Evita construir uma imagem com um requirements.txt malformado.
 if grep -Fq '\n' requirements.txt; then
   echo "ERRO: requirements.txt contém barras \\n literais em vez de quebras de linha."
-  echo "Extraia novamente o ZIP v0.3.9 antes de continuar."
+  echo "Extraia novamente o ZIP v0.3.10 antes de continuar."
   exit 1
 fi
 
@@ -98,7 +98,7 @@ done <<< "$legados"
 
 echo
 echo "Iniciando o contêiner..."
-# Reconstroi com a base Debian 12 da v0.3.9; evita reutilizar a imagem
+# Reconstroi com a base Debian 12 da v0.3.10; evita reutilizar a imagem
 # antiga baseada em Debian 13, que continha nmcli 1.52.1.
 "${DOCKER[@]}" compose up --build --force-recreate -d
 
@@ -110,7 +110,7 @@ PORTA=${PORTA:-8080}
 echo "  http://localhost:${PORTA}"
 echo "============================================"
 echo "Acesso no computador local; para ZimaOS use o Compose da pasta deploy/."
-echo "Imagem v0.3.9: Debian 12 / nmcli 1.42.x (compatível com daemon 1.46 do Zorin)."
+echo "Imagem v0.3.10: Debian 12 / nmcli 1.42.x (compatível com daemon 1.46 do Zorin)."
 echo "Não reinicie o NetworkManager para resolver aviso de diferença de versão."
 echo "O padrão é acesso local. No ZimaOS, use o Compose da pasta deploy/."
 echo "O token de administração está salvo no arquivo .env."

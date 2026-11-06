@@ -1,8 +1,16 @@
 # Histórico de versões
 
-## v0.3.9 — 06/11/2026
+## v0.3.10 — 06/11/2026
+- Corrigido repositório de publicação para `lucassfontes/Network_Manager`.
+- Workflow de publicação GHCR agora executa em cada push na `main`, tags v* ou manualmente.
+- Imagem padronizada: `ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.10`.
+- Ícone x-casaos apontando para o SVG no repositório real.
+- Versão sincronizada no painel, contêiner, scripts, README e testes.
+- Mantidas as proteções de token e o comportamento de rede; sem alterações nas funções de hotspot.
+
+## v0.3.10 — 06/11/2026
 - Projeto reorganizado para publicar no GitHub com `.gitignore`, `.dockerignore`, `.env.example`, e `VERSION` sincronizado.
-- Workflow GitHub Actions para compilar/publicar imagem no GHCR (tag 0.3.9 e latest); necessita execução e imagem pública.
+- Workflow GitHub Actions para compilar/publicar imagem no GHCR (tag 0.3.10 e latest); necessita execução e imagem pública.
 - Compose separado para instalar como aplicativo personalizado no ZimaOS com ícone azul Wi-Fi, metadados x-casaos e porta padrão 8687.
 - Acesso ao painel ZimaOS pela LAN, exigindo token também em todas as consultas à API; bloqueia servidor sem configuração protegida.
 - Servidor web agora aceita `PANEL_BIND_HOST`, `PANEL_PORT` e `PANEL_REQUIRE_READ_TOKEN`; Zorin continua local por padrão.

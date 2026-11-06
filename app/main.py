@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-app=FastAPI(title="Painel de Rede Linux", version="0.3.9")
+app=FastAPI(title="Painel de Rede Linux", version="0.3.10")
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 TOKEN=os.environ.get("PANEL_TOKEN","")
 REQUIRE_READ_TOKEN = os.environ.get('PANEL_REQUIRE_READ_TOKEN') == '1'
@@ -23,7 +23,7 @@ async def secure_lan_queries(request: Request, call_next):
 
 @app.get('/api/config')
 def config():
-    return {'version': '0.3.9', 'readRequiresToken': REQUIRE_READ_TOKEN}
+    return {'version': '0.3.10', 'readRequiresToken': REQUIRE_READ_TOKEN}
 
 def cmd(*args, timeout=25, check=True):
     try:
@@ -144,9 +144,9 @@ def health():
     except HTTPException as exc:
         error=str(exc.detail)
         if 'AppArmor policy prevents' in error:
-            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.9.'
+            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.10.'
         raise HTTPException(503, 'NetworkManager inacessível: '+error)
-    return {'ok':True,'version':'0.3.9','networkManagerState':state}
+    return {'ok':True,'version':'0.3.10','networkManagerState':state}
 
 @app.get('/api/status')
 def status():
@@ -204,7 +204,7 @@ def hotspot(data: Hotspot, x_panel_token: str | None = Header(None)):
         if 'mac-address-denylist' in str(exc.detail):
             raise HTTPException(503,
                 'Incompatibilidade entre o nmcli do contêiner e o NetworkManager do host. '
-                'Instale a v0.3.9 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
+                'Instale a v0.3.10 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
         raise
     return {'result': result or 'Hotspot ativado.', 'connection': name,
             'note': 'A internet compartilhada usa a rota padrao. A placa Wi-Fi selecionada pode perder sua conexao atual.'}

@@ -23,7 +23,7 @@ class ZimaOSDeploymentTests(unittest.TestCase):
             with patch.object(main, 'cmd', return_value='connected'):
                 health = client.get('/api/health', headers={'X-Panel-Token': SECRET})
                 self.assertEqual(health.status_code, 200)
-                self.assertEqual(health.json()['version'], '0.3.9')
+                self.assertEqual(health.json()['version'], '0.3.10')
             self.assertEqual(client.get('/api/health', headers={'X-Panel-Token': 'errado'}).status_code, 401)
 
     def test_placeholder_token_rejected_even_if_long(self):
@@ -53,10 +53,20 @@ class ZimaOSDeploymentTests(unittest.TestCase):
         self.assertEqual(svc['environment']['PANEL_REQUIRE_READ_TOKEN'], '1')
         self.assertEqual(svc['environment']['PANEL_BIND_HOST'], '0.0.0.0')
         self.assertEqual(svc['environment']['PANEL_PORT'], '8687')
-        self.assertIn(':0.3.9', svc['image'])
+        self.assertIn(':0.3.10', svc['image'])
         self.assertEqual(zima['x-casaos']['port_map'], '8687')
-        self.assertEqual((ROOT / 'VERSION').read_text().strip(), '0.3.9')
-        self.assertIn('0.3.9', (ROOT / '.github/workflows/publicar-imagem.yml').read_text() + (ROOT / 'VERSION').read_text())
+        self.assertEqual((ROOT / 'VERSION').read_text().strip(), '0.3.10')
+        self.assertEqual(zima['x-casaos']['icon'],
+                         'https://raw.githubusercontent.com/lucassfontes/Network_Manager/main/app/assets/icon.svg')
+        self.assertEqual(zima['services']['network-panel']['image'],
+                         'ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.10')
+        workflow = (ROOT / '.github/workflows/publicar-imagem.yml').read_text()
+        self.assertIn('branches: [main]', workflow)
+        self.assertIn('docker/build-push-action@v6', workflow)
+        self.assertIn('push: true', workflow)
+        self.assertIn('packages: write', workflow)
+        self.assertIn('ghcr.io/lucassfontes/zimaos-network-manager-linux', workflow)
+        self.assertIn('0.3.10', (ROOT / '.github/workflows/publicar-imagem.yml').read_text() + (ROOT / 'VERSION').read_text())
         self.assertIn('.env', (ROOT / '.gitignore').read_text())
 
 if __name__ == '__main__': unittest.main()

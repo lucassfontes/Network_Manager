@@ -29,7 +29,7 @@ class NativeMessageTests(unittest.TestCase):
         client = TestClient(main.app)
         response = client.get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('v0.3.9', response.text)
+        self.assertIn('v0.3.10', response.text)
         css = client.get('/assets/app.css')
         self.assertEqual(css.status_code, 200)
         self.assertIn('.confirm-backdrop', css.text)

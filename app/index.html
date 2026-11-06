@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1425">
   <meta name="description" content="Painel local para visualizar e administrar as interfaces de rede do Linux com NetworkManager.">
-  <title>Gerenciador de Rede Linux · v0.3.9</title>
+  <title>Gerenciador de Rede Linux · v0.3.10</title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
-  <link rel="stylesheet" href="/assets/app.css?v=0.3.9">
-  <script src="/assets/app.js?v=0.3.9" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=0.3.10">
+  <script src="/assets/app.js?v=0.3.10" defer></script>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -54,7 +54,7 @@
     </nav>
     <div class="sidebar-bottom">
       <div class="sidebar-safety"><svg class="icon"><use href="#i-lock"/></svg><div><strong>Acesso protegido</strong><small>No ZimaOS, use token na rede local.</small></div></div>
-      <div class="sidebar-version"><span>Linux · Docker</span><strong>v0.3.9</strong></div>
+      <div class="sidebar-version"><span>Linux · Docker</span><strong>v0.3.10</strong></div>
     </div>
   </aside>
 
@@ -103,7 +103,7 @@
 
       <section class="page" id="page-settings"><div class="split-grid"><div class="panel form-panel"><div class="panel-head"><div><h2>Autorização para alterações</h2><p>Necessária para alterar a rede e consultar dados no ZimaOS</p></div></div><label class="field-label" for="adminToken">Token de administração</label><div class="password-row"><input id="adminToken" class="field-input" type="password" autocomplete="off" placeholder="Cole PANEL_TOKEN do arquivo .env"><button type="button" class="password-toggle" data-toggle-password="adminToken" aria-label="Mostrar ou ocultar token"><svg class="icon"><use href="#i-eye"/></svg></button></div><button class="button button-primary button-wide" id="saveToken"><svg class="icon"><use href="#i-check"/></svg> Usar token nesta aba</button><button class="button button-secondary button-wide" id="clearToken">Esquecer token desta aba</button><div class="capability" id="tokenState">Nenhum token configurado para esta aba.</div></div><div class="panel explainer-panel"><div class="explainer-icon"><svg class="icon"><use href="#i-lock"/></svg></div><h2>Onde encontrar o token?</h2><p>Abra a pasta onde você extraiu o projeto e localize o arquivo oculto <code>.env</code>. Copie somente o valor depois de <code>PANEL_TOKEN=</code>.</p><div class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Não envie esse token para outras pessoas. Ele autoriza mudanças na rede do computador. No ZimaOS, a rede local exige token também para consultas. Não exponha a porta à internet.</span></div></div></div></section>
 
-      <footer class="footer"><span>ZimaOS Network Manager <strong>v0.3.9</strong></span><span>Linux · NetworkManager · Acesso local</span></footer>
+      <footer class="footer"><span>ZimaOS Network Manager <strong>v0.3.10</strong></span><span>Linux · NetworkManager · Acesso local</span></footer>
     </div>
   </main>
 </div>

@@ -1,4 +1,4 @@
-/* ZimaOS Network Manager · v0.3.9 — interface visual, sem bibliotecas externas. */
+/* ZimaOS Network Manager · v0.3.10 — interface visual, sem bibliotecas externas. */
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
@@ -280,7 +280,7 @@
     const nmstate = health?.networkManagerState || '';
     const label = failed ? 'Serviço indisponível' : nmstate ? 'NetworkManager respondendo' : 'Sem informações';
     $('healthDisplay').className = 'health-display' + (failed ? ' bad' : '');
-    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.9`)}</small></div>`;
+    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.10`)}</small></div>`;
     const activeConnections = state.status?.connections || [];
     $('connectionsList').innerHTML = state.errors.status ? `<div class="empty">${esc(state.errors.status)}</div>` : activeConnections.length ? activeConnections.map(item => {
       const values = splitEscaped(item);
