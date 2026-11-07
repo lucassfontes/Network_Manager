@@ -79,8 +79,8 @@ def announce_setup():
 def _validate_user(username, password):
     if not re.fullmatch(r'[A-Za-z0-9_.-]{3,32}', username):
         raise ValueError('Usuário: 3 a 32 caracteres, letras, números, ponto, _ ou -.')
-    if not 12 <= len(password) <= 128:
-        raise ValueError('Senha: use de 12 a 128 caracteres.')
+    if not 6 <= len(password) <= 128:
+        raise ValueError('Senha: use de 6 a 128 caracteres.')
     if len(password.encode('utf-8')) > 512:
         raise ValueError('Senha muito longa.')
 
@@ -173,7 +173,7 @@ def logout(token):
 
 
 def change_password(user, current, new):
-    if not 12 <= len(new) <= 128: raise ValueError('Nova senha deve ter de 12 a 128 caracteres.')
+    if not 6 <= len(new) <= 128: raise ValueError('Nova senha deve ter de 6 a 128 caracteres.')
     with _db() as con:
         row = con.execute('SELECT id,salt,password_hash FROM users WHERE username=?', (user,)).fetchone()
         if not row or not hmac.compare_digest(_pw_hash(current, row['salt']), row['password_hash']):

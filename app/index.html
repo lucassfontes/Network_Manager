@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1425">
   <meta name="description" content="Painel local para visualizar e administrar as interfaces de rede do Linux com NetworkManager.">
-  <title>Gerenciador de Rede Linux · v0.3.11</title>
+  <title>Gerenciador de Rede Linux · v0.3.12</title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
-  <link rel="stylesheet" href="/assets/app.css?v=0.3.11">
-  <script src="/assets/app.js?v=0.3.11" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=0.3.12">
+  <script src="/assets/app.js?v=0.3.12" defer></script>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -36,7 +36,7 @@
 <section id="authView" class="auth-screen" aria-label="Acesso ao painel">
   <div class="auth-card">
     <div class="auth-logo"><img src="/assets/icon.svg" width="58" height="58" alt="Ícone do gerenciador"></div>
-    <div class="auth-eyebrow">ZIMAOS NETWORK MANAGER · v0.3.11</div>
+    <div class="auth-eyebrow">ZIMAOS NETWORK MANAGER · v0.3.12</div>
     <h1 id="authTitle">Acessar o painel</h1>
     <p class="auth-subtitle" id="authSubtitle">Entre com seu usuário e senha para gerenciar suas redes.</p>
     <div class="auth-notice" id="authNotice" role="alert" hidden></div>
@@ -49,8 +49,8 @@
       <div class="auth-help">Primeiro acesso: crie seu administrador. O código de instalação aparece nos <strong>logs do contêiner</strong> no ZimaOS e será usado uma única vez.</div>
       <label for="setupCode">Código de instalação (logs do Docker)</label><input id="setupCode" class="field-input" autocomplete="off" required maxlength="100" placeholder="Cole o código de primeiro acesso">
       <label for="setupUsername">Novo usuário</label><input id="setupUsername" class="field-input" autocomplete="username" required minlength="3" maxlength="32" placeholder="Ex.: administrador">
-      <label for="setupPassword">Crie uma senha (mínimo 12 caracteres)</label><input id="setupPassword" class="field-input" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Senha forte">
-      <label for="setupPasswordConfirm">Confirme a senha</label><input id="setupPasswordConfirm" class="field-input" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Repita sua senha">
+      <label for="setupPassword">Crie uma senha (mínimo 6 caracteres)</label><input id="setupPassword" class="field-input" type="password" autocomplete="new-password" required minlength="6" maxlength="128" placeholder="Senha forte">
+      <label for="setupPasswordConfirm">Confirme a senha</label><input id="setupPasswordConfirm" class="field-input" type="password" autocomplete="new-password" required minlength="6" maxlength="128" placeholder="Repita sua senha">
       <button class="button button-primary button-wide" type="submit">Criar conta e entrar</button>
     </form>
     <p class="auth-foot">Sua sessão continua ativa neste navegador por até 90 dias sem uso. Não exponha o painel à internet.</p>
@@ -78,7 +78,7 @@
     </nav>
     <div class="sidebar-bottom">
       <div class="sidebar-safety"><svg class="icon"><use href="#i-lock"/></svg><div><strong>Acesso protegido</strong><small>Sessão protegida por usuário e senha.</small></div></div>
-      <div class="sidebar-version"><span>Linux · Docker</span><strong>v0.3.11</strong></div>
+      <div class="sidebar-version"><span>Linux · Docker</span><strong>v0.3.12</strong></div>
     </div>
   </aside>
 
@@ -121,13 +121,42 @@
 
       <section class="page" id="page-share"><div class="panel"><div class="panel-head"><div><h2>Compartilhamento de internet</h2><p>Veja a rota de saída que o NetworkManager poderá utilizar</p></div></div><div class="share-flow"><div class="flow-node"><span class="flow-circle blue"><svg class="icon"><use href="#i-globe"/></svg></span><strong>Internet</strong><small>Conexão principal</small></div><span class="flow-arrow"><svg class="icon"><use href="#i-arrow"/></svg></span><div class="flow-node"><span class="flow-circle purple"><svg class="icon"><use href="#i-cpu"/></svg></span><strong>Seu Linux</strong><small id="shareSource">Identificando origem...</small></div><span class="flow-arrow"><svg class="icon"><use href="#i-arrow"/></svg></span><div class="flow-node"><span class="flow-circle green"><svg class="icon"><use href="#i-hotspot"/></svg></span><strong>Hotspot</strong><small>Placa compatível</small></div></div><div class="info-pairs"><div><small>INTERFACE DE SAÍDA</small><strong id="shareInterface">—</strong></div><div><small>GATEWAY PADRÃO</small><strong id="shareGateway">—</strong></div></div><div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>A escolha manual da origem da internet e o roteamento avançado ainda não estão disponíveis. O hotspot usa a rota padrão ativa.</span></div><button class="button button-primary" data-goto="hotspot">Ir para Hotspot <svg class="icon"><use href="#i-arrow"/></svg></button></div></section>
 
-      <section class="page" id="page-ip"><div class="panel"><div class="panel-head"><div><h2>Endereços IP da interface</h2><p>Consulte IPv4, IPv6, gateway e DNS sem modificar a conexão</p></div><button class="button button-secondary button-small" id="refreshIp"><svg class="icon"><use href="#i-refresh"/></svg> Atualizar</button></div><label class="field-label" for="ipDevice">Selecione uma interface de rede</label><select id="ipDevice" class="field-input ip-select"></select><div class="ip-grid" id="ipDetails"><div class="loading">Selecione uma interface.</div></div><div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>Nesta versão, a tela de IP é somente para consulta. A edição de DHCP/IP estático ainda não foi implementada — não exibimos botões que não funcionam.</span></div></div></section>
+      <section class="page" id="page-ip">
+        <div class="panel"><div class="panel-head"><div><h2>Endereços IP da interface</h2><p>Consulte e configure DHCP, IP estático, gateway e DNS</p></div><button class="button button-secondary button-small" id="refreshIp"><svg class="icon"><use href="#i-refresh"/></svg> Atualizar</button></div>
+          <label class="field-label" for="ipDevice">Selecione uma interface de rede</label><select id="ipDevice" class="field-input ip-select"></select>
+          <div class="ip-grid" id="ipDetails"><div class="loading">Selecione uma interface.</div></div>
+        </div>
+        <div class="panel form-panel ip-editor" id="ipEditorPanel">
+          <div class="panel-head"><div><h2>Configurar a conexão</h2><p id="ipProfileTitle">Carregando perfil ativo...</p></div></div>
+          <form id="ipForm" novalidate>
+            <div class="ip-form-grid">
+              <div class="field-wrap"><label class="field-label" for="ipMode">Modo IPv4</label><select class="field-input" id="ipMode"><option value="auto">Automático (DHCP)</option><option value="manual">IP estático</option><option value="shared">Compartilhado (hotspot)</option></select></div>
+              <div class="field-wrap" id="ipAddressWrap"><label class="field-label" for="ipAddress">Endereço IPv4 e prefixo</label><input id="ipAddress" class="field-input" inputmode="text" placeholder="192.168.1.50/24" autocomplete="off"></div>
+              <div class="field-wrap" id="ipGatewayWrap"><label class="field-label" for="ipGateway">Gateway IPv4</label><input id="ipGateway" class="field-input" placeholder="192.168.1.1" autocomplete="off"></div>
+              <div class="field-wrap" id="ipDnsWrap"><label class="field-label" for="ipDns">DNS IPv4 (separe por vírgula)</label><input id="ipDns" class="field-input" placeholder="1.1.1.1, 8.8.8.8" autocomplete="off"></div>
+            </div>
+            <div class="ip-section-title">IPv6 <span class="hint">Opcional — preserve o atual se não precisar mudar</span></div>
+            <div class="ip-form-grid">
+              <div class="field-wrap"><label class="field-label" for="ip6Mode">Configuração IPv6</label><select class="field-input" id="ip6Mode"><option value="unchanged">Manter configuração atual</option><option value="auto">Automático</option><option value="manual">Estático</option><option value="disabled">Desativado</option></select></div>
+              <div class="field-wrap" id="ip6AddressWrap" hidden><label class="field-label" for="ip6Address">Endereço IPv6/prefixo</label><input id="ip6Address" class="field-input" placeholder="2001:db8::10/64" autocomplete="off"></div>
+              <div class="field-wrap" id="ip6GatewayWrap" hidden><label class="field-label" for="ip6Gateway">Gateway IPv6</label><input id="ip6Gateway" class="field-input" placeholder="2001:db8::1" autocomplete="off"></div>
+              <div class="field-wrap" id="ip6DnsWrap" hidden><label class="field-label" for="ip6Dns">DNS IPv6</label><input id="ip6Dns" class="field-input" placeholder="2606:4700:4700::1111" autocomplete="off"></div>
+            </div>
+            <div id="ipInfoNote" class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Alterar o IP pode desconectar o seu navegador. Você terá 150 segundos para confirmar. Sem confirmação, o sistema tenta restaurar o IP anterior.</span></div>
+            <button type="submit" class="button button-primary" id="ipApplyBtn">Aplicar configuração de IP</button>
+          </form>
+          <div class="ip-pending" id="ipPending" hidden role="status" aria-live="polite">
+            <h3 id="ipPendingTitle">Aguardando confirmação...</h3><p id="ipPendingMessage"></p>
+            <div class="ip-pending-actions"><button type="button" class="button button-primary" id="ipConfirmBtn">Confirmar que estou conectado</button><button type="button" class="button button-secondary" id="ipPendingRefreshBtn">Verificar status</button></div>
+          </div>
+        </div>
+      </section>
 
       <section class="page" id="page-status"><div class="split-grid"><div class="panel"><div class="panel-head"><div><h2>Estado do NetworkManager</h2><p>Diagnóstico simplificado do serviço do Linux</p></div><button class="button button-secondary button-small" data-refresh="status"><svg class="icon"><use href="#i-refresh"/></svg> Verificar</button></div><div class="health-display" id="healthDisplay"><div class="loading">Verificando serviço...</div></div><div class="info-pairs stacked"><div><small>ROTA DE INTERNET</small><strong id="statusRoute">—</strong></div></div></div><div class="panel"><div class="panel-head"><div><h2>Conexões ativas</h2><p>Conexões que o Linux considera em uso</p></div></div><div class="connections-list" id="connectionsList"><div class="loading">Carregando conexões...</div></div></div></div></section>
 
-      <section class="page" id="page-settings"><div class="split-grid"><div class="panel form-panel"><div class="panel-head"><div><h2>Minha conta</h2><p>Seus dados e a sessão deste navegador</p></div></div><div class="user-summary"><span class="user-avatar"><svg class="icon"><use href="#i-lock"/></svg></span><div><small>USUÁRIO CONECTADO</small><strong id="currentUsername">—</strong></div></div><div class="capability good">Você permanece conectado neste navegador por até 90 dias sem usar o painel. Não é necessário colocar um token em cada acesso.</div><button type="button" class="button button-danger-outline button-wide" id="logoutBtn">Sair deste dispositivo</button></div><div class="panel form-panel"><div class="panel-head"><div><h2>Alterar senha</h2><p>A nova senha será aplicada à sua conta</p></div></div><form id="passwordForm" novalidate><label class="field-label" for="currentPassword">Senha atual</label><input id="currentPassword" class="field-input" type="password" autocomplete="current-password" required><label class="field-label" for="newPassword">Nova senha (mínimo 12 caracteres)</label><input id="newPassword" class="field-input" type="password" autocomplete="new-password" minlength="12" required><label class="field-label" for="confirmNewPassword">Confirmar nova senha</label><input id="confirmNewPassword" class="field-input" type="password" autocomplete="new-password" minlength="12" required><button type="submit" class="button button-primary button-wide">Salvar nova senha</button></form><div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>Ao mudar a senha, todas as sessões serão encerradas e será necessário entrar novamente.</span></div></div></div></section>
+      <section class="page" id="page-settings"><div class="split-grid"><div class="panel form-panel"><div class="panel-head"><div><h2>Minha conta</h2><p>Seus dados e a sessão deste navegador</p></div></div><div class="user-summary"><span class="user-avatar"><svg class="icon"><use href="#i-lock"/></svg></span><div><small>USUÁRIO CONECTADO</small><strong id="currentUsername">—</strong></div></div><div class="capability good">Você permanece conectado neste navegador por até 90 dias sem usar o painel. Não é necessário colocar um token em cada acesso.</div><button type="button" class="button button-danger-outline button-wide" id="logoutBtn">Sair deste dispositivo</button></div><div class="panel form-panel"><div class="panel-head"><div><h2>Alterar senha</h2><p>A nova senha será aplicada à sua conta</p></div></div><form id="passwordForm" novalidate><label class="field-label" for="currentPassword">Senha atual</label><input id="currentPassword" class="field-input" type="password" autocomplete="current-password" required><label class="field-label" for="newPassword">Nova senha (mínimo 6 caracteres)</label><input id="newPassword" class="field-input" type="password" autocomplete="new-password" minlength="6" required><label class="field-label" for="confirmNewPassword">Confirmar nova senha</label><input id="confirmNewPassword" class="field-input" type="password" autocomplete="new-password" minlength="6" required><button type="submit" class="button button-primary button-wide">Salvar nova senha</button></form><div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>Ao mudar a senha, todas as sessões serão encerradas e será necessário entrar novamente.</span></div></div></div></section>
 
-      <footer class="footer"><span>ZimaOS Network Manager <strong>v0.3.11</strong></span><span>Linux · NetworkManager · Acesso local</span></footer>
+      <footer class="footer"><span>ZimaOS Network Manager <strong>v0.3.12</strong></span><span>Linux · NetworkManager · Acesso local</span></footer>
     </div>
   </main>
 </div>

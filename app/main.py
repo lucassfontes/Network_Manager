@@ -1,19 +1,20 @@
 import os, subprocess, re, secrets, time
 from collections import defaultdict, deque
 from urllib.parse import urlsplit
-from app import auth_store
+from app import auth_store, ip_manager
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Request, Response, Cookie
+from fastapi import FastAPI, HTTPException, Request, Response, Cookie, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-app=FastAPI(title="Painel de Rede Linux", version="0.3.11")
+app=FastAPI(title="Painel de Rede Linux", version="0.3.12")
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 # Primeira conta protegida por codigo unico nos logs; depois, sessao HttpOnly.
 @app.on_event('startup')
 def startup():
     auth_store.announce_setup()
+    ip_manager.recover_at_startup(cmd,split_nmcli)
 
 _login_attempts = defaultdict(deque)
 
@@ -61,11 +62,11 @@ async def require_authenticated_network(request: Request, call_next):
 
 @app.get('/api/config')
 def config():
-    return {'version':'0.3.11','authentication':'session'}
+    return {'version':'0.3.12','authentication':'session'}
 
 @app.get('/api/auth/state')
 def auth_state():
-    return {'setupRequired':not auth_store.has_user(), 'version':'0.3.11'}
+    return {'setupRequired':not auth_store.has_user(), 'version':'0.3.12'}
 
 @app.get('/api/auth/session')
 def auth_session(request: Request):
@@ -81,7 +82,7 @@ def auth_session(request: Request):
 
 class SetupAccount(BaseModel):
     username: str = Field(min_length=3,max_length=32)
-    password: str = Field(min_length=12,max_length=128)
+    password: str = Field(min_length=6,max_length=128)
     pairingCode: str = Field(min_length=8,max_length=100)
 
 class LoginAccount(BaseModel):
@@ -90,7 +91,7 @@ class LoginAccount(BaseModel):
 
 class ChangePassword(BaseModel):
     currentPassword: str = Field(min_length=1,max_length=128)
-    newPassword: str = Field(min_length=12,max_length=128)
+    newPassword: str = Field(min_length=6,max_length=128)
 
 def _login_response(request: Request, data):
     token=data['token']
@@ -245,6 +246,29 @@ def ip_details(device: str):
         else: details[key] = value
     return details
 
+@app.get('/api/ip/config')
+def ip_config(device: str):
+    return ip_manager.profile_info(device,cmd,device_ok,split_nmcli)
+
+@app.get('/api/ip/pending')
+def ip_pending():
+    return ip_manager.get_pending()
+
+@app.post('/api/ip/apply', status_code=202)
+def ip_apply(data: ip_manager.IpChange, background_tasks: BackgroundTasks):
+    transaction = ip_manager.begin(data,cmd,device_ok,split_nmcli)
+    # Executa só depois que o HTTP 202 for enviado, antes que a rota caia.
+    background_tasks.add_task(ip_manager.run_apply,transaction,cmd,split_nmcli)
+    return {'id':transaction['id'],'status':'applying','timeoutSeconds':ip_manager.TIMEOUT_SECONDS,
+            'message':'Alteração iniciada. Confirme o acesso antes que o sistema reverta o IP.'}
+
+class IpConfirm(BaseModel):
+    id: str = Field(min_length=1,max_length=100)
+
+@app.post('/api/ip/confirm')
+def ip_confirm(data: IpConfirm):
+    return ip_manager.confirm(data.id)
+
 @app.get('/api/health')
 def health():
     """Não basta a página carregar: verifica a comunicação real com o NM no host."""
@@ -253,9 +277,9 @@ def health():
     except HTTPException as exc:
         error=str(exc.detail)
         if 'AppArmor policy prevents' in error:
-            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.11.'
+            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.12.'
         raise HTTPException(503, 'NetworkManager inacessível: '+error)
-    return {'ok':True,'version':'0.3.11','networkManagerState':state}
+    return {'ok':True,'version':'0.3.12','networkManagerState':state}
 
 @app.get('/api/status')
 def status():
@@ -312,7 +336,7 @@ def hotspot(data: Hotspot):
         if 'mac-address-denylist' in str(exc.detail):
             raise HTTPException(503,
                 'Incompatibilidade entre o nmcli do contêiner e o NetworkManager do host. '
-                'Instale a v0.3.11 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
+                'Instale a v0.3.12 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
         raise
     return {'result': result or 'Hotspot ativado.', 'connection': name,
             'note': 'A internet compartilhada usa a rota padrao. A placa Wi-Fi selecionada pode perder sua conexao atual.'}

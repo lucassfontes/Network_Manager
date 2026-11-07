@@ -1,4 +1,4 @@
-/* ZimaOS Network Manager · v0.3.11 — interface visual, sem bibliotecas externas. */
+/* ZimaOS Network Manager · v0.3.12 — interface visual, sem bibliotecas externas. */
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
@@ -9,7 +9,7 @@
     wifi: ['Redes Wi-Fi', 'Procure redes próximas e conecte-se à que você escolher.'],
     hotspot: ['Hotspot', 'Veja, pare ou crie pontos de acesso Wi-Fi.'],
     share: ['Compartilhar internet', 'Entenda qual conexão fornece a internet para o hotspot.'],
-    ip: ['Endereços IP', 'Consulte endereços IPv4, IPv6, gateway e DNS de cada placa.'],
+    ip: ['Endereços IP', 'Configure DHCP, IP estático, gateway e DNS das conexões.'],
     status: ['Diagnóstico', 'Confira o estado do NetworkManager e as conexões ativas.'],
     settings: ['Minha conta', 'Gerencie sua sessão e altere sua senha de acesso.']
   };
@@ -137,6 +137,7 @@
     $('setupPasswordConfirm').value = '';
     $('setupCode').value = '';
     refreshAll();
+    checkIpPending();
   }
   async function api(path, options = {}) {
     const controller = new AbortController();
@@ -331,15 +332,89 @@
     const values = Array.isArray(lines) ? lines : [lines];
     return `<div class="ip-item"><small>${esc(label)}</small>${values.filter(Boolean).length ? values.filter(Boolean).map(v => `<strong>${esc(v)}</strong>`).join('<p></p>') : '<strong>Não configurado</strong>'}</div>`;
   }
+  let ipProfile = null;
+  let ipPolling = null;
+  function trimProfileValue(value) { return String(value || '').trim(); }
+  function updateIpFormModes() {
+    const mode=$('ipMode').value, ipv6=$('ip6Mode').value;
+    $('ipAddressWrap').hidden = mode === 'auto';
+    $('ipGatewayWrap').hidden = mode !== 'manual';
+    $('ipDnsWrap').hidden = mode === 'shared';
+    $('ip6AddressWrap').hidden = ipv6 !== 'manual';
+    $('ip6GatewayWrap').hidden = ipv6 !== 'manual';
+    $('ip6DnsWrap').hidden = !['manual','auto'].includes(ipv6);
+  }
+  function setIpForm(data) {
+    ipProfile = data;
+    const settings=data.settings || {};
+    $('ipForm').hidden=false;
+    $('ipProfileTitle').textContent=`${data.connection || 'Conexão'} · ${data.device}${data.hotspot ? ' · Hotspot' : ''}`;
+    const mode = data.hotspot ? 'shared' : (settings['ipv4.method']==='manual'?'manual':'auto');
+    $('ipMode').innerHTML = data.hotspot ? '<option value="shared">Compartilhado (hotspot)</option>' : '<option value="auto">Automático (DHCP)</option><option value="manual">IP estático</option>';
+    $('ipMode').value=mode;
+    $('ipAddress').value=trimProfileValue(settings['ipv4.addresses']).split(',')[0] || '';
+    $('ipGateway').value=trimProfileValue(settings['ipv4.gateway']);
+    $('ipDns').value=trimProfileValue(settings['ipv4.dns']).replace(/\n/g,', ');
+    $('ip6Mode').innerHTML=data.hotspot ? '<option value="unchanged">Manter IPv6 do hotspot</option>' : '<option value="unchanged">Manter configuração atual</option><option value="auto">Automático</option><option value="manual">Estático</option><option value="disabled">Desativado</option>';
+    $('ip6Mode').value='unchanged';
+    $('ip6Address').value=trimProfileValue(settings['ipv6.addresses']).split(',')[0] || '';
+    $('ip6Gateway').value=trimProfileValue(settings['ipv6.gateway']);
+    $('ip6Dns').value=trimProfileValue(settings['ipv6.dns']).replace(/\n/g,', ');
+    updateIpFormModes();
+    const span=$('ipInfoNote').querySelector('span');
+    span.textContent=data.hotspot ? 'Este perfil é um hotspot: o IPv4 permanece compartilhado. Escolha o endereço da rede do hotspot (ex.: 10.42.0.1/24). Os clientes podem desconectar. Você terá 150 segundos para confirmar.' : 'DHCP ou IP estático será aplicado ao perfil ativo desta placa. Sua conexão pode cair. Você terá 150 segundos para confirmar o acesso; caso contrário, o sistema tenta restaurar a configuração anterior.';
+  }
   async function loadIp() {
     const device = $('ipDevice').value;
-    if (!device) { $('ipDetails').innerHTML = '<div class="empty">Nenhuma placa de rede encontrada.</div>'; return; }
+    if (!device) { $('ipDetails').innerHTML = '<div class="empty">Nenhuma placa de rede encontrada.</div>'; $('ipForm').hidden=true; return; }
     $('ipDetails').innerHTML = '<div class="loading">Consultando endereços IP...</div>';
     try {
-      const d = await api('ip?device=' + encodeURIComponent(device));
+      const [details,profile] = await Promise.all([api('ip?device=' + encodeURIComponent(device)),api('ip/config?device='+encodeURIComponent(device))]);
       if ($('ipDevice').value !== device) return;
-      $('ipDetails').innerHTML = ipCell('ENDEREÇO IPv4',d.ipv4)+ipCell('GATEWAY IPv4',d.gateway)+ipCell('SERVIDORES DNS',d.dns)+ipCell('ENDEREÇO IPv6',d.ipv6)+ipCell('GATEWAY IPv6',d.gateway6);
-    } catch(e) { $('ipDetails').innerHTML = `<div class="empty">Não foi possível consultar os endereços desta placa: ${esc(e.message)}</div>`; }
+      $('ipDetails').innerHTML = ipCell('ENDEREÇO IPv4',details.ipv4)+ipCell('GATEWAY IPv4',details.gateway)+ipCell('SERVIDORES DNS',details.dns)+ipCell('ENDEREÇO IPv6',details.ipv6)+ipCell('GATEWAY IPv6',details.gateway6);
+      setIpForm(profile);
+      await checkIpPending();
+    } catch(e) { $('ipDetails').innerHTML = `<div class="empty">Não foi possível consultar/configurar esta placa: ${esc(e.message)}</div>`; $('ipForm').hidden=true; }
+  }
+  async function checkIpPending(){
+    try {
+      const info=await api('ip/pending');
+      const active=['applying','await_confirmation'].includes(info.status);
+      $('ipPending').hidden=!active;
+      $('ipApplyBtn').disabled=active;
+      $('ipConfirmBtn').disabled=info.status!=='await_confirmation';
+      if(active) {
+        const left=info.expires?Math.max(0,Math.ceil(info.expires-Date.now()/1000)):null;
+        $('ipPendingTitle').textContent=info.status==='applying'?'Aplicando a configuração de IP...':`Confirme a conexão${left!==null?` (${left}s restantes)`:''}`;
+        $('ipPendingMessage').textContent=(info.message||'') + ' Se o IP mudou, abra o painel no novo endereço, faça login e confirme.';
+        state.ipPendingId=info.id;
+        if(!ipPolling) ipPolling=setInterval(checkIpPending,2000);
+      }else {
+        if(ipPolling) {clearInterval(ipPolling); ipPolling=null;}
+        if(['rolled_back','rollback_error','error'].includes(info.status) && state.lastIpStatus!==info.status) toast(info.message||'A configuração IP não foi concluída.','error');
+        state.lastIpStatus=info.status;
+      }
+    }catch(e){ /* O IP pode ter mudado: manter orientação de reconexão em tela. */ }
+  }
+  async function applyIpChange(e) {
+    e.preventDefault();
+    if(!ipProfile) return toast('Selecione uma conexão ativa.','warn');
+    const data={device:ipProfile.device,mode:$('ipMode').value,address:$('ipAddress').value.trim(),gateway:$('ipGateway').value.trim(),dns:$('ipDns').value.trim(),
+      ipv6Mode:$('ip6Mode').value,ipv6Address:$('ip6Address').value.trim(),ipv6Gateway:$('ip6Gateway').value.trim(),ipv6Dns:$('ip6Dns').value.trim()};
+    if((data.mode==='manual'||data.mode==='shared')&&!data.address) return toast('Informe endereço IPv4 com prefixo. Exemplo: 192.168.1.50/24.','warn');
+    if(data.ipv6Mode==='manual'&&!data.ipv6Address) return toast('Informe o endereço IPv6 com prefixo.','warn');
+    if(!await panelConfirm(`Aplicar IPv4 ${data.mode==='auto'?'automático (DHCP)':data.mode==='shared'?'compartilhado para hotspot':'estático'} em ${data.device}?\nA comunicação com o servidor pode cair. Sem confirmação em 150 segundos o aplicativo tentará restaurar o perfil anterior.`, 'ip/apply')) return;
+    try {
+      const info=await api('ip/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      state.ipPendingId=info.id;
+      toast('Alteração iniciada. Confirme o acesso antes do prazo.','warn');
+      await checkIpPending();
+    }catch(error){toast(error.message,'error');}
+  }
+  async function confirmIpChange(){
+    if(!state.ipPendingId) return;
+    try{const result=await api('ip/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:state.ipPendingId})});toast(result.result||'IP confirmado.');await checkIpPending();await loadIp();}
+    catch(error){toast(error.message,'error');}
   }
   function renderStatus() {
     const health = state.health;
@@ -347,7 +422,7 @@
     const nmstate = health?.networkManagerState || '';
     const label = failed ? 'Serviço indisponível' : nmstate ? 'NetworkManager respondendo' : 'Sem informações';
     $('healthDisplay').className = 'health-display' + (failed ? ' bad' : '');
-    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.11`)}</small></div>`;
+    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.12`)}</small></div>`;
     const activeConnections = state.status?.connections || [];
     $('connectionsList').innerHTML = state.errors.status ? `<div class="empty">${esc(state.errors.status)}</div>` : activeConnections.length ? activeConnections.map(item => {
       const values = splitEscaped(item);
@@ -473,6 +548,11 @@
     });
     $('ipDevice').addEventListener('change', loadIp);
     $('refreshIp').addEventListener('click', loadIp);
+    $('ipMode').addEventListener('change', updateIpFormModes);
+    $('ip6Mode').addEventListener('change', updateIpFormModes);
+    $('ipForm').addEventListener('submit', applyIpChange);
+    $('ipConfirmBtn').addEventListener('click', confirmIpChange);
+    $('ipPendingRefreshBtn').addEventListener('click', checkIpPending);
     document.querySelectorAll('[data-toggle-password]').forEach(btn => btn.addEventListener('click', () => { const el = $(btn.dataset.togglePassword); el.type = el.type === 'password' ? 'text' : 'password'; }));
     $('loginForm').addEventListener('submit',async e=>{
       e.preventDefault();
@@ -485,7 +565,7 @@
       e.preventDefault();
       const username=$('setupUsername').value.trim(),password=$('setupPassword').value,pairingCode=$('setupCode').value.trim();
       if(password!==$('setupPasswordConfirm').value) { $('authNotice').textContent='As duas senhas são diferentes.'; $('authNotice').hidden=false; return; }
-      if(password.length<12) { $('authNotice').textContent='Use no mínimo 12 caracteres para a senha.'; $('authNotice').hidden=false; return; }
+      if(password.length<6) { $('authNotice').textContent='Use no mínimo 6 caracteres para a senha.'; $('authNotice').hidden=false; return; }
       try{const data=await api('auth/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password,pairingCode})});showApp(data);toast('Conta criada! Bem-vindo ao seu painel.');}
       catch(error){$('authNotice').textContent=error.message;$('authNotice').hidden=false;}
     });
@@ -498,7 +578,7 @@
       e.preventDefault();
       const currentPassword=$('currentPassword').value,newPassword=$('newPassword').value;
       if(newPassword!==$('confirmNewPassword').value) return toast('A confirmação da nova senha não corresponde.','warn');
-      if(newPassword.length<12) return toast('A nova senha precisa ter no mínimo 12 caracteres.','warn');
+      if(newPassword.length<6) return toast('A nova senha precisa ter no mínimo 6 caracteres.','warn');
       try{await api('auth/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentPassword,newPassword})});$('passwordForm').reset();showAuth('Senha alterada. Faça login novamente.');}
       catch(error){toast(error.message,'error');}
     });

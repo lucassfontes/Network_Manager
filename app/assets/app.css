@@ -18,7 +18,7 @@
 .hotspot-stop{flex:none;white-space:nowrap}
 @media(max-width:610px){.hotspot-entry{flex-wrap:wrap}.hotspot-entry-info{flex:1}.hotspot-stop{width:100%;justify-content:center}}
 
-/* v0.3.11: notificações e confirmações internas, sem diálogos nativos do navegador. */
+/* v0.3.12: notificações e confirmações internas, sem diálogos nativos do navegador. */
 .toast.show{display:flex;align-items:flex-start;gap:12px;min-width:270px;white-space:pre-wrap;overflow-wrap:anywhere;animation:panel-pop .18s ease-out}
 .toast-icon{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:8px;background:#1e6454;color:#ccffe9;font-size:18px;font-weight:800}
 .toast.warn .toast-icon{background:#765a2c;color:#fff0cf}
@@ -42,7 +42,7 @@
 @media(max-width:520px){.confirm-backdrop{padding:12px}.confirm-panel{padding:25px 19px;border-radius:15px}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.confirm-actions .button{min-width:0}.toast{left:12px;right:12px;max-width:none;bottom:14px}}
 @media(prefers-reduced-motion:reduce){.confirm-panel,.toast.show{animation:none!important}}
 
-/* v0.3.11 — autenticação nativa com primeiro acesso e sessões persistentes */
+/* v0.3.12 — autenticação nativa com primeiro acesso e sessões persistentes */
 [hidden]{display:none!important}
 .auth-screen{min-height:100dvh;display:grid;place-items:center;padding:28px 16px;background:radial-gradient(circle at 20% 10%,#1c4277 0,transparent 30%),radial-gradient(circle at 100% 80%,#102e50 0,transparent 36%),#091321}
 .auth-card{width:100%;max-width:470px;background:linear-gradient(150deg,#142840,#101e31);border:1px solid #30506c;border-radius:20px;padding:34px;box-shadow:0 25px 80px #0008}
@@ -76,3 +76,6 @@
 .wifi-dialog-panel #wifiDialogDetail{line-height:1.5}
 .wifi-dialog-panel .hint{display:block;margin-top:7px}
 @media(max-width:680px){.network-row.current{flex-wrap:wrap}.network-disconnect{margin:0 13px 12px auto}.auth-card{padding:25px 21px}.network-select{width:100%;gap:9px}.network-bars{display:none}}
+
+/* v0.3.12 — Editor responsivo de IP */
+.ip-editor{margin-top:16px} .ip-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-bottom:17px}.field-wrap{min-width:0}.field-wrap[hidden],.ip-pending[hidden],#ipForm[hidden]{display:none!important}.ip-section-title{font-size:14px;font-weight:800;margin:23px 0 16px;border-top:1px solid var(--line,#2e4360);padding-top:19px}.ip-section-title .hint{font-weight:400;display:block;margin-top:5px}.ip-pending{margin-top:20px;padding:20px;border:1px solid #d1a647;border-radius:12px;background:rgba(174,128,24,.12)}.ip-pending h3{font-size:16px;margin:0 0 8px}.ip-pending p{line-height:1.6;margin-bottom:16px}.ip-pending-actions{display:flex;gap:12px;flex-wrap:wrap}#ipApplyBtn{margin-top:18px}@media(max-width:650px){.ip-form-grid{grid-template-columns:1fr}.ip-pending-actions>.button{width:100%}}

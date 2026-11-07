@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## v0.3.12 — 07/11/2026
+- Edição IPv4 real para conexões ativas Wi-Fi/Ethernet (DHCP, estático, gateway, DNS).
+- Hotspot existente: endereço da interface em modo compartilhado (sem alterar faixa DHCP manualmente).
+- IPv6 opcional: automático, estático ou desativado; pode ser preservado.
+- Salva perfil anterior e exige confirmação em 150 segundos; sem confirmação tenta rollback.
+- Reinício durante alteração pendente também dispara tentativa de restauração ao subir.
+- Senha mínima para usuário do painel: 6 caracteres; WPA2 do hotspot mantém mínimo de 8 bytes.
+- Versões sincronizadas no GitHub Actions, Compose e interface.
+
+
 ## v0.3.11 — 07/11/2026
 - Primeiro acesso com usuário, senha e código de instalação de uso único nos logs Docker.
 - Removido PANEL_TOKEN; sessões persistentes por cookie HttpOnly com SQLite em volume.
@@ -24,7 +34,7 @@
 ## v0.3.9 — 06/11/2026
 - Preparação para publicar o projeto no GitHub e instalar pelo ZimaOS.
 - Adicionados workflow GHCR, Compose para ZimaOS, metadados de aplicativo e ícone azul Wi-Fi.
-- Acesso local por token no ZimaOS; substituído por usuário e senha na v0.3.11.
+- Acesso local por token no ZimaOS; substituído por usuário e senha na v0.3.12.
 
 ## v0.3.8 — 05/11/2026
 - Todas as confirmações de ações de rede agora aparecem numa janela do próprio sistema, com nome da ação, Cancelar e Confirmar.

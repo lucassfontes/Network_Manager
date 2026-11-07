@@ -1,10 +1,15 @@
-# ZimaOS Network Manager — v0.3.11
+# ZimaOS Network Manager — v0.3.12
 
-Painel web de rede para **Linux / NetworkManager** (Zorin OS e ZimaOS). Menu lateral, Wi-Fi, hotspot, compartilhamento e IP somente leitura. Sem suporte a Windows.
+Painel web de rede para **Linux / NetworkManager** (Zorin OS e ZimaOS). Menu lateral, Wi-Fi, hotspot, compartilhamento e edição de IP para conexões ativas. Sem suporte a Windows.
 
-## Novo na v0.3.11
+## Novo na v0.3.12
 
-- **Primeiro acesso:** crie um usuário e senha diretamente pelo navegador (mínimo 12 caracteres). Para impedir que outra pessoa registre a conta antes de você, o cadastro exige um código **de uso único** exibido no log do contêiner na primeira inicialização.
+- **IP da conexão ativa:** DHCP ou IPv4 estático com endereço/prefixo, gateway e DNS em Wi-Fi ou Ethernet. IPv6 pode ser mantido, configurado automaticamente, definido manualmente ou desativado.
+- **Hotspot ativo:** edição do endereço IPv4 da interface em modo compartilhado; o intervalo DHCP dos clientes não é configurável nesta versão.
+- **Proteção de acesso:** ao aplicar, salva a configuração anterior e aguarda até **150 segundos** para confirmar. Sem confirmação ou em caso de falha, **tenta** restaurar o perfil antigo automaticamente. Essa restauração não é garantida em toda falha de rede; **faça o primeiro teste com acesso físico ao servidor**, nunca apenas remotamente.
+- A edição exige uma conexão NetworkManager **ativa**. Não edita perfis desconectados. Alterações feitas por DHCP no roteador não são controladas pelo aplicativo.
+
+- **Primeiro acesso:** crie um usuário e senha diretamente pelo navegador (mínimo 6 caracteres). Para impedir que outra pessoa registre a conta antes de você, o cadastro exige um código **de uso único** exibido no log do contêiner na primeira inicialização.
 - **Login:** sessões de até 90 dias, renovadas durante uso, por cookie HttpOnly com SameSite Strict. A senha é protegida com PBKDF2-HMAC-SHA256 e sal aleatório; sessões são armazenadas como hashes no SQLite.
 - **Persistência:** a conta, as sessões e o código inicial não ficam dentro do contêiner descartável. São salvos em `/app/data` e montados no host.
 - **Wi-Fi:** clique sobre uma rede: abre a janela interna para informar a senha e conectar. Redes conectadas exibem **Desconectar**; não afeta hotspots via o botão de rede comum.
@@ -14,8 +19,8 @@ Painel web de rede para **Linux / NetworkManager** (Zorin OS e ZimaOS). Menu lat
 
 ## Instalação no ZimaOS
 
-1. Envie a v0.3.11 ao GitHub, inclusive `.github/workflows/publicar-imagem.yml`.
-2. Em Actions, aguarde a publicação da imagem no GHCR como `ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.11`, depois deixe o package público.
+1. Envie a v0.3.12 ao GitHub, inclusive `.github/workflows/publicar-imagem.yml`.
+2. Em Actions, aguarde a publicação da imagem no GHCR como `ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.12`, depois deixe o package público.
 3. Importe o Compose em `deploy/zimaos-compose.yaml` na tela de aplicativo personalizado do ZimaOS.
 4. Confirme que o volume `/DATA/AppData/ZimaOSNetworkManager/config:/app/data` existe/pode ser gravado; o Docker normalmente cria a pasta. **Não apague a pasta ao atualizar**, pois ela guarda a conta.
 5. Abra `http://IP-DO-ZIMAOS:8687`. Se for a primeira instalação, abra os **logs do contêiner** no ZimaOS (ou execute `sudo docker logs --tail 40 zimaos-network-manager`) e copie o **código de instalação** mostrado; crie seu usuário e senha pelo formulário. Código de instalação não é um token de uso diário e é apagado depois do cadastro.
@@ -33,5 +38,5 @@ Extraia o ZIP e execute `./iniciar.sh` (o terminal permanece aberto e mostra `ht
 - **Não exponha 8687 à internet.** O Compose utiliza HTTP simples, adequado somente em LAN confiável. Para acesso remoto utilize túnel/VPN com HTTPS. Cookies podem ser capturados em redes hostis se não houver TLS; com HTTPS via proxy, configure `PANEL_SECURE_COOKIE=1`.
 - **Primeiro acesso exige código impresso nos logs**; somente o administrador do ZimaOS/Docker deve ver esse código. Se esquecer a senha, não existe recuperação pela internet: salve um backup seguro da pasta `config` ou faça recuperação local com acesso administrativo.
 - O hotspot pode derrubar o Wi-Fi atual; teste com acesso físico. O modo Wi-Fi + AP simultâneo ainda depende do driver.
-- Editar IP estático e DHCP continua **não implementado**; a tela IP é de consulta.
-- A v0.3.11 ainda precisa de testes de integração com hardware real e de publicação no GHCR.
+- Editar DHCP, IPv4 estático e DNS em perfis ativos está implementado; a faixa DHCP do hotspot não é editável. O mecanismo de restauração é uma tentativa, não uma garantia.
+- A v0.3.12 ainda precisa de testes de integração com hardware real e de publicação no GHCR.

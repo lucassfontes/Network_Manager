@@ -2,7 +2,7 @@ name: zimaos-network-manager
 services:
   network-panel:
     build: .
-    image: zimaos-network-manager:0.3.11
+    image: zimaos-network-manager:0.3.12
     container_name: zimaos-network-manager
     network_mode: host
     security_opt:
