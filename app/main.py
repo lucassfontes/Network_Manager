@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-app=FastAPI(title="Painel de Rede Linux", version="0.3.12")
+app=FastAPI(title="Painel de Rede Linux", version="0.3.13")
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 # Primeira conta protegida por codigo unico nos logs; depois, sessao HttpOnly.
 @app.on_event('startup')
@@ -62,11 +62,11 @@ async def require_authenticated_network(request: Request, call_next):
 
 @app.get('/api/config')
 def config():
-    return {'version':'0.3.12','authentication':'session'}
+    return {'version':'0.3.13','authentication':'session'}
 
 @app.get('/api/auth/state')
 def auth_state():
-    return {'setupRequired':not auth_store.has_user(), 'version':'0.3.12'}
+    return {'setupRequired':not auth_store.has_user(), 'version':'0.3.13'}
 
 @app.get('/api/auth/session')
 def auth_session(request: Request):
@@ -187,6 +187,21 @@ def devices():
         dev,typ,state,connection=a
         info={'device':dev,'type':typ,'state':state,'connection':connection,'ap':'não aplicável' if typ!='wifi' else 'não foi possível verificar','simultaneous':'não foi possível verificar'}
         if typ=='wifi':
+            # nmcli device status fornece connection.id (nome tecnico do perfil),
+            # que pode ser ZNM-Hotspot-xxxx; o SSID real esta no perfil Wi-Fi ativo.
+            info['ssid'] = ''
+            if state.lower().startswith('connected'):
+                try:
+                    uuid = cmd('nmcli', '-g', 'GENERAL.CON-UUID',
+                               'device', 'show', dev, timeout=8, check=False).strip()
+                    if re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}', uuid):
+                        raw_ssid = cmd('nmcli', '-g', '802-11-wireless.ssid',
+                                       'connection', 'show', 'uuid', uuid,
+                                       timeout=8, check=False).strip().splitlines()
+                        if raw_ssid:
+                            info['ssid'] = split_nmcli(raw_ssid[0], 1)[0]
+                except Exception:
+                    pass  # fallback: nome do perfil / lista de hotspots, sem alterar rede
             try:
                 phy=Path('/sys/class/net')/dev/'phy80211'
                 if phy.exists():
@@ -277,9 +292,9 @@ def health():
     except HTTPException as exc:
         error=str(exc.detail)
         if 'AppArmor policy prevents' in error:
-            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.12.'
+            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.13.'
         raise HTTPException(503, 'NetworkManager inacessível: '+error)
-    return {'ok':True,'version':'0.3.12','networkManagerState':state}
+    return {'ok':True,'version':'0.3.13','networkManagerState':state}
 
 @app.get('/api/status')
 def status():
@@ -336,7 +351,7 @@ def hotspot(data: Hotspot):
         if 'mac-address-denylist' in str(exc.detail):
             raise HTTPException(503,
                 'Incompatibilidade entre o nmcli do contêiner e o NetworkManager do host. '
-                'Instale a v0.3.12 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
+                'Instale a v0.3.13 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
         raise
     return {'result': result or 'Hotspot ativado.', 'connection': name,
             'note': 'A internet compartilhada usa a rota padrao. A placa Wi-Fi selecionada pode perder sua conexao atual.'}

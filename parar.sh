@@ -12,7 +12,7 @@ pausar() {
 }
 trap pausar EXIT
 
-echo "ZimaOS Network Manager — v0.3.12 | Parar contêiner"
+echo "ZimaOS Network Manager — v0.3.13 | Parar contêiner"
 if ! command -v docker >/dev/null 2>&1; then
   echo "Docker não encontrado."
   exit 1

@@ -31,6 +31,25 @@ class InterfaceTests(AuthTestCase):
         self.assertEqual(result.json()['networks'][0]['ssid'], 'Caf:e WiFi')
         self.assertTrue(result.json()['networks'][0]['inUse'])
 
+    def test_hotspot_card_uses_real_ssid_not_networkmanager_profile_name(self):
+        uuid = '11111111-2222-3333-4444-555555555555'
+        def fake_cmd(*args, **kwargs):
+            if args == ('nmcli','-t','-f','DEVICE,TYPE,STATE,CONNECTION','device','status'):
+                return 'wlan1:wifi:connected:ZNM-Hotspot-fc3794e2a3\n'
+            if args == ('nmcli','-g','GENERAL.CON-UUID','device','show','wlan1'):
+                return uuid+'\n'
+            if args == ('nmcli','-g','802-11-wireless.ssid','connection','show','uuid',uuid):
+                return 'ZimaOS_Server\n'
+            raise AssertionError('Unexpected command: '+str(args))
+        with patch.object(main, 'cmd', side_effect=fake_cmd):
+            response = self.client.get('/api/devices')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]['connection'], 'ZNM-Hotspot-fc3794e2a3')
+        self.assertEqual(response.json()[0]['ssid'], 'ZimaOS_Server')
+        js = self.client.get('/assets/app.js').text
+        self.assertIn('wifiDisplayName(wifi)', js)
+        self.assertIn('d.ssid || hotspot?.ssid || d.connection', js)
+
     def test_device_types_and_virtual_interfaces(self):
         with patch.object(main, 'cmd', return_value='wlp5s0:wifi:connected:Casa Wi-Fi\ndocker0:bridge:connected (externally):docker0\nenp6s0:ethernet:unavailable:\n'):
             result = self.client.get('/api/devices')

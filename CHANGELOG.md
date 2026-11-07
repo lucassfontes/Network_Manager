@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## v0.3.13 — 07/11/2026
+- Painel, dispositivos e Wi-Fi conectado agora exibem o SSID real em vez do nome interno do perfil NetworkManager.
+- Obtém o SSID do perfil Wi-Fi ativo pela UUID, sem alterar a conexão; mantém fallback e utiliza hotspots detectados.
+- Nenhuma alteração de hotspot, IP, credenciais ou permissões de rede.
+- Teste de regressão: ZNM-Hotspot-fc3794e2a3 deve aparecer como ZimaOS_Server.
+
 ## v0.3.12 — 07/11/2026
 - Edição IPv4 real para conexões ativas Wi-Fi/Ethernet (DHCP, estático, gateway, DNS).
 - Hotspot existente: endereço da interface em modo compartilhado (sem alterar faixa DHCP manualmente).

@@ -1,4 +1,4 @@
-/* ZimaOS Network Manager · v0.3.12 — interface visual, sem bibliotecas externas. */
+/* ZimaOS Network Manager · v0.3.13 — interface visual, sem bibliotecas externas. */
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
@@ -84,6 +84,12 @@
   const physical = (d) => d.type === 'wifi' || d.type === 'ethernet';
   const isWifi = (d) => d.type === 'wifi';
   const isHotspot = (d) => state.hotspots.some(h => h.device === d.device);
+  // A interface mostra o nome anunciado da rede, nunca o ID interno do perfil.
+  function wifiDisplayName(d) {
+    if (!d || !active(d)) return 'Não conectado';
+    const hotspot = state.hotspots.find(h => h.device === d.device);
+    return d.ssid || hotspot?.ssid || d.connection || d.device || 'Sem nome';
+  }
   const shortState = (d) => {
     if (active(d)) return ['Conectado', 'ok'];
     if (d.state === 'unavailable') return ['Indisponível', 'warn'];
@@ -186,7 +192,7 @@
     const routeOk = Boolean(route.iface);
     $('metricInternet').textContent = routeOk ? 'Rota disponível' : (state.errors.route ? 'Indisponível' : 'Sem rota ativa');
     $('metricInternetDesc').textContent = routeOk ? `Saída por ${route.iface}` : 'Acesso à internet não confirmado';
-    $('metricWifi').textContent = wifi ? (wifi.connection || wifi.device) : 'Não conectado';
+    $('metricWifi').textContent = wifiDisplayName(wifi);
     $('metricWifiDesc').textContent = wifi ? `Interface ${wifi.device}` : 'Nenhuma conexão Wi-Fi ativa';
     $('metricDevices').textContent = String(real.length);
     $('metricDevicesDesc').textContent = `${real.filter(isWifi).length} Wi-Fi · ${real.filter(d => d.type === 'ethernet').length} Ethernet`;
@@ -195,14 +201,14 @@
     $('overviewRouteName').textContent = route.iface || 'Nenhuma rota padrão';
     $('overviewRouteAddress').textContent = route.via ? `Gateway ${route.via}` : (route.raw || 'Não foi possível determinar a origem');
     const el = $('overviewDevices');
-    el.innerHTML = real.length ? real.map(d => `<div class="device-row">${symbol(d)}<div class="device-row-main"><strong>${esc(typeName(d))} · ${esc(d.device)}</strong><small>${esc(d.connection || (isWifi(d) ? apLabel(d) : driverLabel(d)))}</small></div>${badge(d)}</div>`).join('') : `<div class="empty">${state.errors.devices ? esc(state.errors.devices) : 'Nenhuma placa de rede física detectada.'}</div>`;
+    el.innerHTML = real.length ? real.map(d => `<div class="device-row">${symbol(d)}<div class="device-row-main"><strong>${esc(typeName(d))} · ${esc(d.device)}</strong><small>${esc(isWifi(d) && active(d) ? wifiDisplayName(d) : (d.connection || (isWifi(d) ? apLabel(d) : driverLabel(d))))}</small></div>${badge(d)}</div>`).join('') : `<div class="empty">${state.errors.devices ? esc(state.errors.devices) : 'Nenhuma placa de rede física detectada.'}</div>`;
     const top = $('topConnection');
     top.className = 'top-connection ' + (routeOk ? 'ok' : (state.errors.health || statusLine === 'disconnected' ? 'bad' : ''));
     top.innerHTML = `<i class="pulse"></i> ${routeOk ? 'Rota ativa' : 'Sem rota confirmada'}`;
   }
   function renderDevices() {
     const real = state.devices.filter(physical);
-    $('physicalDevices').innerHTML = real.length ? real.map(d => `<article class="device-card"><div class="device-card-top"><div class="device-card-title">${symbol(d)}<div><strong>${esc(typeName(d))}</strong><small>${esc(d.device)}</small></div></div>${badge(d)}</div><div class="device-card-row"><span>Conexão atual</span><strong>${esc(d.connection || 'Nenhuma')}</strong></div><div class="device-card-row"><span>Driver da placa</span><strong>${esc(driverLabel(d))}</strong></div>${isWifi(d) ? `<div class="device-card-row"><span>Suporte a hotspot</span><strong>${esc(apLabel(d))}</strong></div><div class="device-card-row"><span>Wi-Fi + hotspot ao mesmo tempo</span><strong>Não verificado</strong></div><button class="mini-link" data-goto="wifi">${ico('wifi')} Procurar redes</button>` : `<div class="device-card-row"><span>Conexão por cabo</span><strong>${d.state === 'unavailable' ? 'Sem link ou indisponível' : active(d) ? 'Em uso' : 'Não conectada'}</strong></div>`}</article>`).join('') : `<div class="empty">${state.errors.devices ? esc(state.errors.devices) : 'Não foram encontradas placas físicas.'}</div>`;
+    $('physicalDevices').innerHTML = real.length ? real.map(d => `<article class="device-card"><div class="device-card-top"><div class="device-card-title">${symbol(d)}<div><strong>${esc(typeName(d))}</strong><small>${esc(d.device)}</small></div></div>${badge(d)}</div><div class="device-card-row"><span>Conexão atual</span><strong>${esc(isWifi(d) && active(d) ? wifiDisplayName(d) : (d.connection || 'Nenhuma'))}</strong></div><div class="device-card-row"><span>Driver da placa</span><strong>${esc(driverLabel(d))}</strong></div>${isWifi(d) ? `<div class="device-card-row"><span>Suporte a hotspot</span><strong>${esc(apLabel(d))}</strong></div><div class="device-card-row"><span>Wi-Fi + hotspot ao mesmo tempo</span><strong>Não verificado</strong></div><button class="mini-link" data-goto="wifi">${ico('wifi')} Procurar redes</button>` : `<div class="device-card-row"><span>Conexão por cabo</span><strong>${d.state === 'unavailable' ? 'Sem link ou indisponível' : active(d) ? 'Em uso' : 'Não conectada'}</strong></div>`}</article>`).join('') : `<div class="empty">${state.errors.devices ? esc(state.errors.devices) : 'Não foram encontradas placas físicas.'}</div>`;
     const virt = state.devices.filter(d => !physical(d));
     $('virtualCount').textContent = `(${virt.length})`;
     $('virtualDevices').innerHTML = virt.length ? virt.map(d => `<div class="virtual-row"><div><strong>${esc(d.device)}</strong><br><small>${esc(d.type)}</small></div>${badge(d)}</div>`).join('') : '<p class="hint">Nenhuma interface virtual encontrada.</p>';
@@ -230,7 +236,7 @@
   function renderWifiCurrent() {
     const el = $('wifiCurrent');
     const wifi = state.devices.filter(isWifi);
-    el.innerHTML = wifi.length ? wifi.map(d => `<div class="wifi-active-entry"><span class="device-symbol">${ico('wifi')}</span><div><strong>${esc(d.connection || 'Sem rede conectada')}</strong><small>${esc(d.device)} · ${active(d) ? 'Conectado' : 'Desconectado'}</small></div>${active(d) && !isHotspot(d) ? `<button type="button" class="button button-danger-outline button-small" data-wifi-device-disconnect="${esc(d.device)}">Desconectar</button>` : ''}</div>`).join('') : '<div class="empty">Nenhuma placa Wi-Fi encontrada.</div>';
+    el.innerHTML = wifi.length ? wifi.map(d => `<div class="wifi-active-entry"><span class="device-symbol">${ico('wifi')}</span><div><strong>${esc(active(d) ? wifiDisplayName(d) : 'Sem rede conectada')}</strong><small>${esc(d.device)} · ${active(d) ? 'Conectado' : 'Desconectado'}</small></div>${active(d) && !isHotspot(d) ? `<button type="button" class="button button-danger-outline button-small" data-wifi-device-disconnect="${esc(d.device)}">Desconectar</button>` : ''}</div>`).join('') : '<div class="empty">Nenhuma placa Wi-Fi encontrada.</div>';
   }
   function renderNetworks() {
     const el = $('wifiNetworks');
@@ -422,7 +428,7 @@
     const nmstate = health?.networkManagerState || '';
     const label = failed ? 'Serviço indisponível' : nmstate ? 'NetworkManager respondendo' : 'Sem informações';
     $('healthDisplay').className = 'health-display' + (failed ? ' bad' : '');
-    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.12`)}</small></div>`;
+    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.13`)}</small></div>`;
     const activeConnections = state.status?.connections || [];
     $('connectionsList').innerHTML = state.errors.status ? `<div class="empty">${esc(state.errors.status)}</div>` : activeConnections.length ? activeConnections.map(item => {
       const values = splitEscaped(item);
