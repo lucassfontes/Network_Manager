@@ -1,8 +1,8 @@
-/* ZimaOS Network Manager · v0.3.10 — interface visual, sem bibliotecas externas. */
+/* ZimaOS Network Manager · v0.3.11 — interface visual, sem bibliotecas externas. */
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { readRequiresToken: false, devices: [], route: null, status: null, health: null, networks: [], hotspots: [], errors: {} };
+  const state = { authenticated: false, username: '', csrf: '', devices: [], route: null, status: null, health: null, networks: [], hotspots: [], errors: {} };
   const labels = {
     overview: ['Visão geral', 'Acompanhe suas conexões e os dispositivos disponíveis, sem informações complicadas.'],
     devices: ['Dispositivos', 'Veja as placas de rede detectadas e o que cada uma consegue fazer.'],
@@ -11,7 +11,7 @@
     share: ['Compartilhar internet', 'Entenda qual conexão fornece a internet para o hotspot.'],
     ip: ['Endereços IP', 'Consulte endereços IPv4, IPv6, gateway e DNS de cada placa.'],
     status: ['Diagnóstico', 'Confira o estado do NetworkManager e as conexões ativas.'],
-    settings: ['Acesso administrativo', 'Informe o token necessário para alterar as conexões.']
+    settings: ['Minha conta', 'Gerencie sua sessão e altere sua senha de acesso.']
   };
   const ico = (name) => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -107,16 +107,48 @@
     const route = state.route?.route || '';
     return { raw: route, iface: /(?:^|\s)dev\s+(\S+)/.exec(route)?.[1] || '', via: /(?:^|\s)via\s+(\S+)/.exec(route)?.[1] || '' };
   }
+  function showAuth(message = '', setup = false) {
+    state.authenticated = false;
+    state.csrf = '';
+    $('appShell').hidden = true;
+    $('authView').hidden = false;
+    document.body.classList.remove('dialog-open');
+    $('wifiDialog').hidden = true;
+    $('panelConfirm').hidden = true;
+    $('loginForm').hidden = setup;
+    $('setupForm').hidden = !setup;
+    $('authTitle').textContent = setup ? 'Primeiro acesso' : 'Acessar o painel';
+    $('authSubtitle').textContent = setup ? 'Configure o administrador para proteger seu servidor.' : 'Entre com seu usuário e senha.';
+    $('authNotice').textContent = message;
+    $('authNotice').hidden = !message;
+    const input = setup ? $('setupCode') : $('loginUsername');
+    setTimeout(() => input?.focus(), 20);
+  }
+  function showApp(data) {
+    state.authenticated = true;
+    state.username = data.username;
+    state.csrf = data.csrf;
+    $('currentUsername').textContent = data.username;
+    $('userBadge').textContent = data.username;
+    $('authView').hidden = true;
+    $('appShell').hidden = false;
+    $('loginPassword').value = '';
+    $('setupPassword').value = '';
+    $('setupPasswordConfirm').value = '';
+    $('setupCode').value = '';
+    refreshAll();
+  }
   async function api(path, options = {}) {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), options.method === 'POST' ? 45000 : 13000);
     try {
       const headers = { ...(options.headers || {}) };
-      if (getToken()) headers['X-Panel-Token'] = getToken();
-      const r = await fetch('/api/' + path, { ...options, headers, signal: controller.signal, cache: 'no-store' });
+      if (options.method === 'POST' && state.csrf) headers['X-CSRF-Token'] = state.csrf;
+      const r = await fetch('/api/' + path, { ...options, credentials: 'same-origin', headers, signal: controller.signal, cache: 'no-store' });
       let data;
       try { data = await r.json(); } catch { throw new Error(`Resposta inválida do servidor (HTTP ${r.status}).`); }
       if (!r.ok) {
+        if (r.status === 401 && !path.startsWith('auth/') && state.authenticated) showAuth('Sua sessão expirou. Entre novamente.');
         const detail = data?.detail;
         throw new Error(typeof detail === 'string' ? detail : `Servidor respondeu HTTP ${r.status}.`);
       }
@@ -181,37 +213,72 @@
   }
   function updateControls() {
     const real = state.devices.filter(physical), wifi = real.filter(isWifi);
-    updateSelect('wifiDevice', wifi, 'Nenhuma placa Wi-Fi');
     updateSelect('hotspotDevice', wifi, 'Nenhuma placa Wi-Fi');
     updateSelect('ipDevice', real, 'Nenhuma interface física');
     const scan = $('scanDevice'), was = scan.value;
     scan.innerHTML = '<option value="">Todas as placas Wi-Fi</option>' + wifi.map(d => `<option value="${esc(d.device)}">${esc(d.device)}${active(d) ? ' · conectada' : ''}</option>`).join('');
     if (wifi.some(d => d.device === was)) scan.value = was;
     $('hotspotForm').querySelector('button[type=submit]').disabled = !wifi.length;
-    $('wifiForm').querySelector('button[type=submit]').disabled = !wifi.length;
     updateHotspotCapability();
   }
   async function loadDevices() {
     try { state.devices = await api('devices'); state.errors.devices = ''; }
     catch (e) { state.errors.devices = e.message; state.devices = []; }
-    renderDevices(); updateControls(); renderOverview();
+    renderDevices(); updateControls(); renderOverview(); renderWifiCurrent();
+  }
+  function renderWifiCurrent() {
+    const el = $('wifiCurrent');
+    const wifi = state.devices.filter(isWifi);
+    el.innerHTML = wifi.length ? wifi.map(d => `<div class="wifi-active-entry"><span class="device-symbol">${ico('wifi')}</span><div><strong>${esc(d.connection || 'Sem rede conectada')}</strong><small>${esc(d.device)} · ${active(d) ? 'Conectado' : 'Desconectado'}</small></div>${active(d) && !isHotspot(d) ? `<button type="button" class="button button-danger-outline button-small" data-wifi-device-disconnect="${esc(d.device)}">Desconectar</button>` : ''}</div>`).join('') : '<div class="empty">Nenhuma placa Wi-Fi encontrada.</div>';
   }
   function renderNetworks() {
     const el = $('wifiNetworks');
     if (state.errors.wifi) { el.innerHTML = `<div class="empty">Não foi possível procurar redes.<br>${esc(state.errors.wifi)}</div>`; return; }
     if (!state.networks.length) { el.innerHTML = '<div class="empty">Nenhuma rede encontrada. Verifique se o Wi-Fi está ligado e tente novamente.</div>'; return; }
-    el.innerHTML = state.networks.map((n, i) => `<button class="network-row ${n.inUse ? 'current' : ''}" type="button" data-network-index="${i}"><span class="network-icon">${ico('wifi')}</span><span class="network-body"><strong>${esc(n.ssid)} ${n.inUse ? '<span class="pill ok">Atual</span>' : ''}</strong><small>${esc(n.security && n.security !== '--' ? n.security : 'Rede aberta')} · ${n.signal}% de sinal</small></span><span class="network-bars">${signalText(n.signal)}</span>${ico('chevron')}</button>`).join('');
+    el.innerHTML = state.networks.map((n,i) => `<div class="network-row ${n.inUse ? 'current' : ''}"><button type="button" class="network-select" data-network-index="${i}"><span class="network-icon">${ico('wifi')}</span><span class="network-body"><strong>${esc(n.ssid)} ${n.inUse ? '<span class="pill ok">Conectada</span>' : ''}</strong><small>${esc(n.security && n.security !== '--' ? n.security : 'Rede aberta')} · ${n.signal}% de sinal · ${esc(n.device || 'Wi-Fi')}</small></span><span class="network-bars">${signalText(n.signal)}</span>${ico('chevron')}</button>${n.inUse ? `<button type="button" class="button button-danger-outline button-small network-disconnect" data-wifi-disconnect-index="${i}">Desconectar</button>` : ''}</div>`).join('');
   }
   function signalText(signal) { return signal >= 75 ? 'Excelente' : signal >= 50 ? 'Bom' : signal >= 25 ? 'Médio' : 'Fraco'; }
   async function loadWifi() {
     $('wifiNetworks').innerHTML = '<div class="loading">Procurando redes disponíveis...</div>';
-    const device = $('scanDevice').value;
-    try {
-      const data = await api('wifi' + (device ? '?device=' + encodeURIComponent(device) : ''));
-      state.networks = Array.isArray(data.networks) ? data.networks : [];
-      state.errors.wifi = '';
-    } catch (e) { state.errors.wifi = e.message; state.networks = []; }
+    const selected = $('scanDevice').value;
+    const devices = selected ? [selected] : state.devices.filter(isWifi).map(d=>d.device);
+    const networks = []; const errors=[];
+    for (const device of devices) {
+      try {
+        const data = await api('wifi?device=' + encodeURIComponent(device));
+        for (const n of Array.isArray(data.networks) ? data.networks : []) networks.push({...n,device});
+      } catch(e) { errors.push(device + ': ' + e.message); }
+    }
+    state.networks = networks.sort((a,b)=>Number(b.inUse)-Number(a.inUse) || b.signal-a.signal);
+    state.errors.wifi = networks.length ? '' : errors.join(' | ');
     renderNetworks();
+  }
+  let chosenWifi = null, previousWifiFocus = null;
+  function closeWifiDialog() {
+    $('wifiDialog').hidden=true;
+    $('wifiDialogPassword').value='';
+    chosenWifi=null;
+    document.body.classList.remove('dialog-open');
+    previousWifiFocus?.focus?.();
+    previousWifiFocus=null;
+  }
+  function openWifiDialog(network) {
+    chosenWifi = network;
+    previousWifiFocus = document.activeElement;
+    $('wifiDialog').hidden = false;
+    document.body.classList.add('dialog-open');
+    $('wifiDialogTitle').textContent = network.ssid;
+    const busy=state.devices.find(d=>d.device===network.device && active(d));
+    $('wifiDialogDetail').textContent = network.inUse ? 'Esta rede está conectada. Você pode desligar a conexão.' : (network.security && network.security!=='--' ? 'Rede protegida. Digite a senha para conectar.' : 'Esta rede está aberta e não exige senha.') + (busy ? ' ATENÇÃO: ao conectar, você substituirá a conexão atual nesta placa.' : '');
+    $('wifiDialogEyebrow').textContent = network.inUse ? 'WI-FI CONECTADO' : 'CONECTAR AO WI-FI';
+    $('wifiDialogPasswordContainer').hidden = Boolean(network.inUse || !network.security || network.security==='--' || network.security==='Aberta');
+    const wifiDevices = state.devices.filter(isWifi);
+    $('wifiDialogDevice').innerHTML = wifiDevices.map(d=>`<option value="${esc(d.device)}">${esc(d.device)} ${active(d) ? '(conectado)' : ''}</option>`).join('');
+    $('wifiDialogDevice').value = network.device || wifiDevices[0]?.device || '';
+    $('wifiDialogDevice').disabled = Boolean(network.inUse);
+    $('wifiDialogSubmit').textContent = network.inUse ? 'Desconectar' : 'Conectar';
+    $('wifiDialogSubmit').className = 'button ' + (network.inUse ? 'button-danger' : 'button-primary');
+    setTimeout(() => network.inUse ? $('wifiDialogSubmit').focus() : ($('wifiDialogPasswordContainer').hidden ? $('wifiDialogSubmit').focus() : $('wifiDialogPassword').focus()), 20);
   }
   function renderHotspots() {
     const el = $('activeHotspots');
@@ -241,7 +308,7 @@
       state.hotspots = [];
       state.errors.hotspots = e.message;
     }
-    renderHotspots(); renderOverview();
+    renderHotspots(); renderOverview(); renderWifiCurrent();
   }
   function updateHotspotCapability() {
     const d = state.devices.find(x => x.device === $('hotspotDevice').value);
@@ -280,7 +347,7 @@
     const nmstate = health?.networkManagerState || '';
     const label = failed ? 'Serviço indisponível' : nmstate ? 'NetworkManager respondendo' : 'Sem informações';
     $('healthDisplay').className = 'health-display' + (failed ? ' bad' : '');
-    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.10`)}</small></div>`;
+    $('healthDisplay').innerHTML = `<span class="health-icon">${ico(failed ? 'alert' : 'check')}</span><div><strong>${label}</strong><small>${esc(failed ? state.errors.health : `Estado: ${nmstate || 'indeterminado'} · v0.3.11`)}</small></div>`;
     const activeConnections = state.status?.connections || [];
     $('connectionsList').innerHTML = state.errors.status ? `<div class="empty">${esc(state.errors.status)}</div>` : activeConnections.length ? activeConnections.map(item => {
       const values = splitEscaped(item);
@@ -311,33 +378,24 @@
     try {
       await Promise.all([loadDevices(), loadRoute(), loadHealth(), loadHotspots()]);
       $('lastSync').textContent = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date());
-      const authError = Object.values(state.errors).some(v => /token de acesso|token inválido|HTTP 401|401/i.test(String(v || '')));
-      if (authError && state.readRequiresToken) {
-        navigate('settings');
-        toast('Token incorreto ou ausente. Informe o token configurado no ZimaOS.', 'error');
-        return;
-      }
       if (!silent) toast('Informações atualizadas.');
     } finally { $('refreshAll').disabled = false; }
   }
-  function getToken() { try { return sessionStorage.getItem('zima_nm_token') || ''; } catch { return tokenFallback; } }
-  let tokenFallback = '';
-  function setToken(value) { tokenFallback = value; try { if (value) sessionStorage.setItem('zima_nm_token', value); else sessionStorage.removeItem('zima_nm_token'); } catch { /* sessão indisponível */ } }
-  function showTokenState() {
-    const token = getToken();
-    $('tokenState').textContent = token ? 'Token salvo nesta aba. Consultas protegidas e alterações autorizadas.' : (state.readRequiresToken ? 'Informe o token para consultar a rede deste servidor.' : 'Nenhum token configurado nesta aba.');
-    $('tokenState').className = 'capability ' + (token ? 'good' : 'caution');
-  }
-  async function writeAction(action, payload, warning) {
-    const token = getToken();
-    if (!token) { toast('Informe seu token administrativo antes de modificar a rede.', 'warn'); navigate('settings'); $('adminToken').focus(); return; }
-    if (!await panelConfirm(warning, action)) return;
+  async function writeAction(action, payload, warning, skipConfirm=false) {
+    if (!state.authenticated) { showAuth('Faça login para modificar a rede.'); return false; }
+    if (!skipConfirm && !await panelConfirm(warning, action)) return false;
     try {
-      const result = await api(action, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Panel-Token': token }, body: JSON.stringify(payload) });
+      const result = await api(action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       await refreshAll({ silent: true });
       toast(result.result || 'Operação concluída.');
-      if (action === 'connect') await loadWifi();
-    } catch(e) { toast('Não foi possível concluir: ' + e.message, 'error'); }
+      if (action === 'connect' || action === 'disconnect') await loadWifi();
+      return true;
+    } catch(e) { toast('Não foi possível concluir: ' + e.message, 'error'); return false; }
+  }
+  async function disconnectWifiDevice(device) {
+    if (!device) return toast('Escolha uma placa Wi-Fi.', 'warn');
+    if (!$('wifiDialog').hidden) closeWifiDialog();
+    await writeAction('disconnect',{device},'Desconectar pode interromper o acesso remoto ao ZimaOS.');
   }
   function bindEvents() {
     $('confirmCancel').addEventListener('click', () => closePanelConfirm(false));
@@ -352,11 +410,43 @@
     document.querySelectorAll('[data-refresh]').forEach(btn => btn.addEventListener('click', async () => { if (btn.dataset.refresh === 'devices') await loadDevices(); else await loadHealth(); toast('Informações atualizadas.'); }));
     $('scanBtn').addEventListener('click', loadWifi);
     $('scanDevice').addEventListener('change', loadWifi);
-    $('wifiNetworks').addEventListener('click', e => {
-      const btn = e.target.closest('[data-network-index]'); if (!btn) return;
-      const n = state.networks[Number(btn.dataset.networkIndex)]; if (!n) return;
-      $('wifiSsid').value = n.ssid;
-      if (n.inUse) toast('Esta rede já aparece como conectada.'); else { toast('Rede selecionada. Informe a senha, se necessário.'); $('wifiPassword').focus(); }
+    $('wifiNetworks').addEventListener('click', event => {
+      const disconnect = event.target.closest('[data-wifi-disconnect-index]');
+      if (disconnect) {
+        const n=state.networks[Number(disconnect.dataset.wifiDisconnectIndex)];
+        if (n) disconnectWifiDevice(n.device);
+        return;
+      }
+      const btn=event.target.closest('[data-network-index]');
+      if (!btn) return;
+      const n=state.networks[Number(btn.dataset.networkIndex)];
+      if (n) openWifiDialog(n);
+    });
+    $('wifiCurrent').addEventListener('click',event=>{
+      const btn=event.target.closest('[data-wifi-device-disconnect]');
+      if(btn) disconnectWifiDevice(btn.dataset.wifiDeviceDisconnect);
+    });
+    $('wifiDialogClose').addEventListener('click',closeWifiDialog);
+    $('wifiDialogCancel').addEventListener('click',closeWifiDialog);
+    $('wifiDialogPasswordToggle').addEventListener('click',()=>{
+      const input=$('wifiDialogPassword'); input.type=input.type==='password'?'text':'password';
+    });
+    $('wifiDialogForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      if(!chosenWifi) return;
+      const n=chosenWifi, device=$('wifiDialogDevice').value;
+      if(!device) return toast('Selecione uma placa Wi-Fi.','warn');
+      if(n.inUse) return disconnectWifiDevice(n.device);
+      const password=$('wifiDialogPassword').value || null;
+      if(await writeAction('connect',{device,ssid:n.ssid,password},'',true)) closeWifiDialog();
+    });
+    document.addEventListener('keydown', e => {
+      if ($('wifiDialog').hidden) return;
+      if (e.key==='Escape') {e.preventDefault();closeWifiDialog();}
+      if (e.key==='Tab') {
+        const elements=[...$('wifiDialog').querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')].filter(x=>x.offsetParent!==null);
+        if(elements.length){const first=elements[0],last=elements[elements.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
+      }
     });
     $('refreshHotspots').addEventListener('click', loadHotspots);
     $('activeHotspots').addEventListener('click', (event) => {
@@ -368,16 +458,6 @@
         `Parar o hotspot “${h.ssid || h.name}” na placa ${h.device}?\nIsso desconectará os dispositivos conectados a ele e poderá interromper seu acesso remoto.`);
     });
     $('hotspotDevice').addEventListener('change', updateHotspotCapability);
-    $('wifiForm').addEventListener('submit', e => {
-      e.preventDefault();
-      const device = $('wifiDevice').value;
-      const ssid = $('wifiSsid').value.trim();
-      if (!device) return toast('Selecione uma placa Wi-Fi.', 'warn');
-      if (!ssid) return toast('Informe o nome da rede Wi-Fi.', 'warn');
-      if (ssid.length > 128) return toast('O nome da rede ultrapassou 128 caracteres.', 'warn');
-      writeAction('connect', { device, ssid, password: $('wifiPassword').value || null }, 'A conexão Wi-Fi atual pode ser interrompida.');
-    });
-    $('disconnectBtn').addEventListener('click', () => { if (!$('wifiDevice').value) return toast('Selecione uma placa Wi-Fi.', 'warn'); writeAction('disconnect',{device:$('wifiDevice').value},'Desconectar esta placa pode cortar o acesso ao computador.'); });
     $('hotspotForm').addEventListener('submit', e => {
       e.preventDefault();
       const device = $('hotspotDevice').value;
@@ -394,19 +474,42 @@
     $('ipDevice').addEventListener('change', loadIp);
     $('refreshIp').addEventListener('click', loadIp);
     document.querySelectorAll('[data-toggle-password]').forEach(btn => btn.addEventListener('click', () => { const el = $(btn.dataset.togglePassword); el.type = el.type === 'password' ? 'text' : 'password'; }));
-    $('saveToken').addEventListener('click', () => { const token = $('adminToken').value.trim(); if (!token) return toast('Cole um token antes de salvar.', 'warn'); setToken(token); $('adminToken').value = ''; showTokenState(); toast('Token salvo. Verificando acesso à rede...'); refreshAll(); });
-    $('clearToken').addEventListener('click', () => { setToken(''); $('adminToken').value = ''; showTokenState(); toast('Token apagado desta aba.'); if (state.readRequiresToken) navigate('settings'); });
+    $('loginForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const username=$('loginUsername').value.trim(),password=$('loginPassword').value;
+      if(!username||!password) return showAuth('Informe usuário e senha.');
+      try{const data=await api('auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});showApp(data);}
+      catch(error){showAuth(error.message);$('loginUsername').value=username;}
+    });
+    $('setupForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const username=$('setupUsername').value.trim(),password=$('setupPassword').value,pairingCode=$('setupCode').value.trim();
+      if(password!==$('setupPasswordConfirm').value) { $('authNotice').textContent='As duas senhas são diferentes.'; $('authNotice').hidden=false; return; }
+      if(password.length<12) { $('authNotice').textContent='Use no mínimo 12 caracteres para a senha.'; $('authNotice').hidden=false; return; }
+      try{const data=await api('auth/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password,pairingCode})});showApp(data);toast('Conta criada! Bem-vindo ao seu painel.');}
+      catch(error){$('authNotice').textContent=error.message;$('authNotice').hidden=false;}
+    });
+    $('logoutBtn').addEventListener('click',async()=>{
+      if(!await panelConfirm('Sair do painel neste navegador? As conexões de rede continuarão funcionando.','logout')) return;
+      try{await api('auth/logout',{method:'POST'});}catch(e){toast(e.message,'error');return;}
+      showAuth('Você saiu do painel.');
+    });
+    $('passwordForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const currentPassword=$('currentPassword').value,newPassword=$('newPassword').value;
+      if(newPassword!==$('confirmNewPassword').value) return toast('A confirmação da nova senha não corresponde.','warn');
+      if(newPassword.length<12) return toast('A nova senha precisa ter no mínimo 12 caracteres.','warn');
+      try{await api('auth/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentPassword,newPassword})});$('passwordForm').reset();showAuth('Senha alterada. Faça login novamente.');}
+      catch(error){toast(error.message,'error');}
+    });
   }
   bindEvents();
-  (async () => {
-    try { const cfg = await api('config'); state.readRequiresToken = Boolean(cfg.readRequiresToken); }
-    catch (e) { toast('Não foi possível obter a configuração do painel: ' + e.message, 'error'); }
-    showTokenState();
-    if (state.readRequiresToken && !getToken()) {
-      navigate('settings');
-      toast('Este servidor exige token para mostrar os dados da rede.', 'warn');
-    } else {
-      await refreshAll();
-    }
+  (async()=>{
+    try{
+      const info=await api('auth/state');
+      if(info.setupRequired) return showAuth('',true);
+      try{const session=await api('auth/session');showApp(session);}
+      catch(e){showAuth('Informe seu usuário e senha para continuar.');}
+    } catch(e) {showAuth('Não foi possível verificar o acesso: '+e.message);}
   })();
 })();

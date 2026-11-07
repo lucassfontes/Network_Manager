@@ -1,29 +1,140 @@
-import os, subprocess, re, secrets
+import os, subprocess, re, secrets, time
+from collections import defaultdict, deque
+from urllib.parse import urlsplit
+from app import auth_store
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Header, Request
+from fastapi import FastAPI, HTTPException, Request, Response, Cookie
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-app=FastAPI(title="Painel de Rede Linux", version="0.3.10")
+app=FastAPI(title="Painel de Rede Linux", version="0.3.11")
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
-TOKEN=os.environ.get("PANEL_TOKEN","")
-REQUIRE_READ_TOKEN = os.environ.get('PANEL_REQUIRE_READ_TOKEN') == '1'
+# Primeira conta protegida por codigo unico nos logs; depois, sessao HttpOnly.
+@app.on_event('startup')
+def startup():
+    auth_store.announce_setup()
 
-def token_is_secure():
-    return (len(TOKEN) >= 24 and not TOKEN.startswith(('SUBSTITUA_', 'TROQUE_', 'EXEMPLO_')))
+_login_attempts = defaultdict(deque)
+
+def _login_limited(ip: str):
+    now=time.monotonic()
+    attempts=_login_attempts[ip]
+    while attempts and now-attempts[0]>300:
+        attempts.popleft()
+    if len(attempts)>=8:
+        raise HTTPException(429, 'Muitas tentativas. Aguarde cinco minutos.')
+    attempts.append(now)
+
+
+def _check_origin(request: Request):
+    origin=request.headers.get('origin')
+    if request.headers.get('sec-fetch-site') == 'cross-site':
+        raise HTTPException(403, 'Origem não autorizada.')
+    if origin:
+        parsed=urlsplit(origin)
+        if parsed.scheme not in ('http','https') or parsed.netloc.lower()!=request.headers.get('host','').lower():
+            raise HTTPException(403,'Origem não autorizada.')
+
+
+def _session(request: Request):
+    session=auth_store.get_session_with_csrf(request.cookies.get(auth_store.COOKIE_NAME,''))
+    if not session: raise HTTPException(401, 'Faça login para acessar o painel.')
+    return session
 
 @app.middleware('http')
-async def secure_lan_queries(request: Request, call_next):
-    if request.url.path.startswith('/api/') and request.url.path != '/api/config' and request.method == 'GET' and REQUIRE_READ_TOKEN:
-        received = request.headers.get('x-panel-token', '')
-        if not token_is_secure() or not secrets.compare_digest(received, TOKEN):
-            return JSONResponse({'detail': 'Token de acesso necessário para consultar a rede.'}, status_code=401)
+async def require_authenticated_network(request: Request, call_next):
+    path=request.url.path
+    if path.startswith('/api/'):
+        if request.method not in ('GET','HEAD','OPTIONS'):
+            try: _check_origin(request)
+            except HTTPException as exc: return JSONResponse({'detail': exc.detail}, status_code=exc.status_code)
+        public={'/api/config','/api/auth/state','/api/auth/login','/api/auth/setup','/api/auth/session'}
+        if path not in public:
+            try:
+                session=_session(request)
+                if request.method not in ('GET','HEAD','OPTIONS') and not auth_store.validate_csrf(session,request.headers.get('x-csrf-token','')):
+                    raise HTTPException(403,'Sessão inválida para essa operação. Atualize a página.')
+            except HTTPException as exc:
+                return JSONResponse({'detail':exc.detail},status_code=exc.status_code)
     return await call_next(request)
 
 @app.get('/api/config')
 def config():
-    return {'version': '0.3.10', 'readRequiresToken': REQUIRE_READ_TOKEN}
+    return {'version':'0.3.11','authentication':'session'}
+
+@app.get('/api/auth/state')
+def auth_state():
+    return {'setupRequired':not auth_store.has_user(), 'version':'0.3.11'}
+
+@app.get('/api/auth/session')
+def auth_session(request: Request):
+    s=_session(request)
+    token=request.cookies[auth_store.COOKIE_NAME]
+    response=JSONResponse({'authenticated':True,'username':s['username'],
+            'csrf':auth_store.csrf_for_cookie(token)})
+    response.set_cookie(auth_store.COOKIE_NAME,token,httponly=True,samesite='strict',
+                        secure=os.getenv('PANEL_SECURE_COOKIE')=='1' or request.url.scheme=='https',
+                        max_age=auth_store.SESSION_TTL,path='/')
+    response.headers['Cache-Control']='no-store'
+    return response
+
+class SetupAccount(BaseModel):
+    username: str = Field(min_length=3,max_length=32)
+    password: str = Field(min_length=12,max_length=128)
+    pairingCode: str = Field(min_length=8,max_length=100)
+
+class LoginAccount(BaseModel):
+    username: str = Field(min_length=1,max_length=32)
+    password: str = Field(min_length=1,max_length=128)
+
+class ChangePassword(BaseModel):
+    currentPassword: str = Field(min_length=1,max_length=128)
+    newPassword: str = Field(min_length=12,max_length=128)
+
+def _login_response(request: Request, data):
+    token=data['token']
+    response=JSONResponse({'authenticated':True,'username':data['username'],
+                           'csrf':auth_store.csrf_for_cookie(token)})
+    response.set_cookie(auth_store.COOKIE_NAME,token,httponly=True,samesite='strict',
+                        secure=os.getenv('PANEL_SECURE_COOKIE')=='1' or request.url.scheme=='https',
+                        max_age=auth_store.SESSION_TTL,path='/')
+    response.headers['Cache-Control']='no-store'
+    return response
+
+@app.post('/api/auth/setup')
+def setup(request: Request, account: SetupAccount):
+    if auth_store.has_user(): raise HTTPException(409,'A conta já foi criada. Faça login.')
+    _login_limited(request.client.host if request.client else 'unknown')
+    try: data=auth_store.create_admin(account.username,account.password,account.pairingCode)
+    except ValueError as exc: raise HTTPException(400,str(exc)) from exc
+    return _login_response(request,data)
+
+@app.post('/api/auth/login')
+def login(request: Request, account: LoginAccount):
+    if not auth_store.has_user(): raise HTTPException(409,'Conclua o primeiro acesso.')
+    _login_limited(request.client.host if request.client else 'unknown')
+    result=auth_store.login(account.username,account.password)
+    if not result: raise HTTPException(401,'Usuário ou senha incorretos.')
+    return _login_response(request,result)
+
+@app.post('/api/auth/logout')
+def logout(request: Request):
+    auth_store.logout(request.cookies.get(auth_store.COOKIE_NAME))
+    response=JSONResponse({'ok':True})
+    response.delete_cookie(auth_store.COOKIE_NAME,path='/')
+    response.headers['Cache-Control']='no-store'
+    return response
+
+@app.post('/api/auth/change-password')
+def change_password(request: Request, item: ChangePassword):
+    user=_session(request)['username']
+    try: auth_store.change_password(user,item.currentPassword,item.newPassword)
+    except ValueError as exc: raise HTTPException(400,str(exc)) from exc
+    response=JSONResponse({'ok':True,'message':'Senha alterada. Entre novamente.'})
+    response.delete_cookie(auth_store.COOKIE_NAME,path='/')
+    return response
+
 
 def cmd(*args, timeout=25, check=True):
     try:
@@ -31,9 +142,6 @@ def cmd(*args, timeout=25, check=True):
     except (OSError,subprocess.TimeoutExpired) as e: raise HTTPException(503,str(e))
     if check and p.returncode: raise HTTPException(400,(p.stderr or p.stdout).strip()[:500])
     return p.stdout
-
-def auth(x_panel_token: str|None):
-    if not token_is_secure() or not secrets.compare_digest(x_panel_token or '',TOKEN): raise HTTPException(401,'Token inválido ou não configurado')
 
 def device_ok(name,kind=None):
     if not re.fullmatch(r'[a-zA-Z0-9_.:-]{1,64}',name): raise HTTPException(400,'Interface inválida')
@@ -114,7 +222,8 @@ def wifi(device:str|None=None):
         try: signal_num = max(0, min(100, int(signal)))
         except ValueError: signal_num = 0
         networks.append({'ssid': ssid, 'signal': signal_num,
-                         'security': security or 'Aberta', 'inUse': in_use.strip() == '*'})
+                         'security': security or 'Aberta', 'inUse': in_use.strip() == '*',
+                         'device':device or ''})
     networks.sort(key=lambda item: (not item['inUse'], -item['signal']))
     return {'lines':lines, 'networks':networks}
 
@@ -144,9 +253,9 @@ def health():
     except HTTPException as exc:
         error=str(exc.detail)
         if 'AppArmor policy prevents' in error:
-            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.10.'
+            error='AppArmor bloqueou o D-Bus. Recrie o contêiner com a configuração v0.3.11.'
         raise HTTPException(503, 'NetworkManager inacessível: '+error)
-    return {'ok':True,'version':'0.3.10','networkManagerState':state}
+    return {'ok':True,'version':'0.3.11','networkManagerState':state}
 
 @app.get('/api/status')
 def status():
@@ -163,15 +272,14 @@ class Hotspot(BaseModel):
 class Interface(BaseModel): device:str
 
 @app.post('/api/connect')
-def connect(data:Connect,x_panel_token:str|None=Header(None)):
-    auth(x_panel_token); device_ok(data.device,'wifi')
+def connect(data:Connect):
+    device_ok(data.device,'wifi')
     args=['nmcli','--wait','20','device','wifi','connect',data.ssid,'ifname',data.device]
     if data.password: args+=['password',data.password]
     return {'result':cmd(*args,timeout=35).strip()}
 
 @app.post('/api/hotspot')
-def hotspot(data: Hotspot, x_panel_token: str | None = Header(None)):
-    auth(x_panel_token)
+def hotspot(data: Hotspot):
     device_ok(data.device, 'wifi')
     if len(data.ssid.encode('utf-8')) > 32:
         raise HTTPException(400, 'Nome Wi-Fi ultrapassa 32 bytes UTF-8.')
@@ -204,7 +312,7 @@ def hotspot(data: Hotspot, x_panel_token: str | None = Header(None)):
         if 'mac-address-denylist' in str(exc.detail):
             raise HTTPException(503,
                 'Incompatibilidade entre o nmcli do contêiner e o NetworkManager do host. '
-                'Instale a v0.3.10 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
+                'Instale a v0.3.11 e execute iniciar.sh para reconstruir a imagem Docker.') from exc
         raise
     return {'result': result or 'Hotspot ativado.', 'connection': name,
             'note': 'A internet compartilhada usa a rota padrao. A placa Wi-Fi selecionada pode perder sua conexao atual.'}
@@ -247,8 +355,7 @@ class StopHotspot(BaseModel):
     uuid: str = Field(pattern=r'^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$')
 
 @app.post('/api/hotspot/stop')
-def stop_hotspot(data: StopHotspot, x_panel_token: str | None = Header(None)):
-    auth(x_panel_token)
+def stop_hotspot(data: StopHotspot):
     # Re-check current state immediately before writing: never disconnect
     # arbitrary saved profiles, inactive profiles or normal Wi-Fi clients.
     candidate = next((item for item in list_active_hotspots() if item['uuid'].lower() == data.uuid.lower()), None)
@@ -259,8 +366,10 @@ def stop_hotspot(data: StopHotspot, x_panel_token: str | None = Header(None)):
             'uuid': candidate['uuid'], 'device': candidate['device']}
 
 @app.post('/api/disconnect')
-def disconnect(data:Interface,x_panel_token:str|None=Header(None)):
-    auth(x_panel_token); device_ok(data.device,'wifi')
+def disconnect(data:Interface):
+    device_ok(data.device,'wifi')
+    if any(h['device'] == data.device for h in list_active_hotspots()):
+        raise HTTPException(409,'Esta placa está transmitindo um hotspot. Use Parar hotspot.')
     return {'result':cmd('nmcli','device','disconnect',data.device).strip()}
 
 @app.get('/',response_class=HTMLResponse)

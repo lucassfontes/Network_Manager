@@ -22,17 +22,17 @@ class NativeMessageTests(unittest.TestCase):
         self.assertIn('aria-modal="true"', html)
         self.assertIn('id="confirmCancel"', html)
         self.assertIn('id="confirmAccept"', html)
-        self.assertIn('id="wifiForm" novalidate', html)
+        self.assertIn('id="wifiDialogForm" novalidate', html)
         self.assertIn('id="hotspotForm" novalidate', html)
 
     def test_existing_api_not_changed(self):
         client = TestClient(main.app)
         response = client.get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('v0.3.10', response.text)
+        self.assertIn('v0.3.11', response.text)
         css = client.get('/assets/app.css')
         self.assertEqual(css.status_code, 200)
         self.assertIn('.confirm-backdrop', css.text)
-        self.assertEqual(client.get('/api/health').status_code in (200, 503), True)
+        self.assertEqual(client.get('/api/health').status_code, 401)
 
 if __name__ == '__main__': unittest.main()

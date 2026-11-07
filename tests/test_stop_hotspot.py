@@ -4,6 +4,7 @@ from unittest.mock import patch
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app import main
+from tests.auth_fixtures import AuthTestCase
 
 HOTSPOT_UUID = '11111111-2222-3333-4444-555555555555'
 WIFI_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
@@ -23,14 +24,10 @@ def nm_fake(*args, **kw):
     raise AssertionError(f'Unexpected nmcli call: {args!r}')
 
 
-class StopHotspotTests(unittest.TestCase):
+class StopHotspotTests(AuthTestCase):
     def setUp(self):
-        self.previous = main.TOKEN
-        main.TOKEN = 'teste-123-aleatorio-com-mais-24-caracteres'
-        self.client = TestClient(main.app)
-
-    def tearDown(self):
-        main.TOKEN = self.previous
+        super().setUp()
+        self.setup_account()
 
     def test_detects_only_active_ap_profiles_even_non_project(self):
         with patch.object(main, 'cmd', side_effect=nm_fake):
@@ -43,7 +40,7 @@ class StopHotspotTests(unittest.TestCase):
 
     def test_stops_only_selected_hotspot_uuid(self):
         with patch.object(main, 'cmd', side_effect=nm_fake) as fake:
-            response = self.client.post('/api/hotspot/stop', json={'uuid': OTHER_UUID}, headers={'X-Panel-Token': 'teste-123-aleatorio-com-mais-24-caracteres'})
+            response = self.client.post('/api/hotspot/stop', json={'uuid': OTHER_UUID}, headers={'X-CSRF-Token': self.csrf})
         self.assertEqual(response.status_code, 200, response.text)
         change = [c.args for c in fake.call_args_list if 'down' in c.args]
         self.assertEqual(len(change), 1)
@@ -53,19 +50,19 @@ class StopHotspotTests(unittest.TestCase):
 
     def test_cannot_stop_normal_client_wifi(self):
         with patch.object(main, 'cmd', side_effect=nm_fake) as fake:
-            response = self.client.post('/api/hotspot/stop', json={'uuid': WIFI_UUID}, headers={'X-Panel-Token':'teste-123-aleatorio-com-mais-24-caracteres'})
+            response = self.client.post('/api/hotspot/stop', json={'uuid': WIFI_UUID}, headers={'X-CSRF-Token': self.csrf})
         self.assertEqual(response.status_code, 404)
         self.assertFalse(any('down' in c.args for c in fake.call_args_list))
 
-    def test_no_token_no_nm_access(self):
+    def test_no_csrf_no_nm_access(self):
         with patch.object(main, 'cmd') as fake:
             response = self.client.post('/api/hotspot/stop', json={'uuid': HOTSPOT_UUID})
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
         fake.assert_not_called()
 
     def test_invalid_uuid_rejected(self):
         with patch.object(main, 'cmd') as fake:
-            response = self.client.post('/api/hotspot/stop', json={'uuid': 'uuid; rm -rf /'}, headers={'X-Panel-Token':'teste-123-aleatorio-com-mais-24-caracteres'})
+            response = self.client.post('/api/hotspot/stop', json={'uuid': 'uuid; rm -rf /'}, headers={'X-CSRF-Token': self.csrf})
         self.assertEqual(response.status_code, 422)
         fake.assert_not_called()
 

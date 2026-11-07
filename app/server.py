@@ -9,12 +9,6 @@ def main():
     port = int(os.getenv('PANEL_PORT', '8080'))
     if not 1024 <= port <= 65535:
         raise SystemExit('PANEL_PORT deve estar entre 1024 e 65535')
-    if host == '0.0.0.0':
-        if os.getenv('PANEL_REQUIRE_READ_TOKEN') != '1':
-            raise SystemExit('Acesso LAN exige PANEL_REQUIRE_READ_TOKEN=1; painel bloqueado.')
-        from app.main import token_is_secure
-        if not token_is_secure():
-            raise SystemExit('Token fraco ou padrao. Configure PANEL_TOKEN forte antes de iniciar na LAN.')
     uvicorn.run('app.main:app', host=host, port=port, proxy_headers=False, server_header=False)
 
 if __name__ == '__main__':

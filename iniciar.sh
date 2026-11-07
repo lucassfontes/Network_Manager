@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 
-VERSAO="0.3.10"
+VERSAO="0.3.11"
 # Mantém a janela aberta, inclusive quando ocorre um erro.
 ao_sair() {
   resultado=$?
@@ -26,10 +26,6 @@ echo "  ZimaOS Network Manager — v${VERSAO}"
 echo "============================================"
 if ! command -v docker >/dev/null 2>&1; then
   echo "ERRO: Docker não está instalado ou não está no PATH."
-  exit 1
-fi
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "ERRO: Python 3 não está instalado (necessário para criar o token)."
   exit 1
 fi
 
@@ -71,14 +67,14 @@ fi
 
 if [[ ! -f .env ]]; then
   umask 077
-  printf 'PANEL_TOKEN=%s\n' "$(python3 -c 'import secrets;print(secrets.token_urlsafe(24))')" > .env
-  echo "Token de administração criado em .env (não compartilhe)."
+  printf 'PANEL_BIND_HOST=127.0.0.1\nPANEL_PORT=8080\n' > .env
+  echo "Configuracao inicial criada em .env."
 fi
 
 # Evita construir uma imagem com um requirements.txt malformado.
 if grep -Fq '\n' requirements.txt; then
   echo "ERRO: requirements.txt contém barras \\n literais em vez de quebras de linha."
-  echo "Extraia novamente o ZIP v0.3.10 antes de continuar."
+  echo "Extraia novamente o ZIP v0.3.11 antes de continuar."
   exit 1
 fi
 
@@ -98,7 +94,7 @@ done <<< "$legados"
 
 echo
 echo "Iniciando o contêiner..."
-# Reconstroi com a base Debian 12 da v0.3.10; evita reutilizar a imagem
+# Reconstroi com a base Debian 12 da v0.3.11; evita reutilizar a imagem
 # antiga baseada em Debian 13, que continha nmcli 1.52.1.
 "${DOCKER[@]}" compose up --build --force-recreate -d
 
@@ -110,36 +106,33 @@ PORTA=${PORTA:-8080}
 echo "  http://localhost:${PORTA}"
 echo "============================================"
 echo "Acesso no computador local; para ZimaOS use o Compose da pasta deploy/."
-echo "Imagem v0.3.10: Debian 12 / nmcli 1.42.x (compatível com daemon 1.46 do Zorin)."
+echo "Imagem v0.3.11: Debian 12 / nmcli 1.42.x (compatível com daemon 1.46 do Zorin)."
 echo "Não reinicie o NetworkManager para resolver aviso de diferença de versão."
 echo "O padrão é acesso local. No ZimaOS, use o Compose da pasta deploy/."
-echo "O token de administração está salvo no arquivo .env."
+echo "No primeiro acesso, crie seu usuário e senha no navegador.
+O código inicial aparece nos logs abaixo (somente na primeira instalação)."
 echo
 echo "Status do contêiner:"
 "${DOCKER[@]}" compose ps
 
 if command -v curl >/dev/null 2>&1; then
   echo
-  echo "Verificando painel E comunicação com NetworkManager (até 20 segundos)..."
+  echo "Verificando o painel (até 20 segundos)..."
   disponivel=0
   for _ in {1..20}; do
-    if curl -H "X-Panel-Token: $(sed -nE 's/^PANEL_TOKEN=(.*)$/\1/p' .env | tail -1)" --silent --fail --max-time 2 "http://127.0.0.1:${PORTA}/api/health" >/dev/null 2>&1; then
-      disponivel=1
-      break
+    if curl --silent --fail --max-time 2 "http://127.0.0.1:${PORTA}/api/auth/state" >/dev/null 2>&1; then
+      disponivel=1; break
     fi
     sleep 1
   done
   if (( disponivel )); then
-    echo "OK: painel e NetworkManager respondendo em http://localhost:${PORTA}"
+    echo "OK: painel disponível em http://localhost:${PORTA}"
   else
-    echo "AVISO: não foi possível confirmar acesso ao NetworkManager."
-    echo "Diagnóstico da API (uma falha aqui não significa que o Docker parou):"
-    curl -H "X-Panel-Token: $(sed -nE 's/^PANEL_TOKEN=(.*)$/\1/p' .env | tail -1)" --silent --show-error --max-time 4 "http://127.0.0.1:${PORTA}/api/health" || true
-    echo
-    echo "Últimos logs do contêiner:"
-    "${DOCKER[@]}" compose logs --tail=15 || true
-    echo "Se o erro continuar, confirme a execução no Zorin OS e envie a mensagem acima."
+    echo "AVISO: painel ainda não respondeu. Verifique os logs abaixo."
   fi
-else
-  echo "AVISO: curl não encontrado, então não foi possível testar a conexão ao NetworkManager."
 fi
+
+echo
+echo "Se for a primeira execução, copie o código de instalação abaixo"
+echo "e informe-o na tela de cadastro do painel."
+"${DOCKER[@]}" compose logs --tail=28 || true

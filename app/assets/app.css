@@ -18,7 +18,7 @@
 .hotspot-stop{flex:none;white-space:nowrap}
 @media(max-width:610px){.hotspot-entry{flex-wrap:wrap}.hotspot-entry-info{flex:1}.hotspot-stop{width:100%;justify-content:center}}
 
-/* v0.3.10: notificações e confirmações internas, sem diálogos nativos do navegador. */
+/* v0.3.11: notificações e confirmações internas, sem diálogos nativos do navegador. */
 .toast.show{display:flex;align-items:flex-start;gap:12px;min-width:270px;white-space:pre-wrap;overflow-wrap:anywhere;animation:panel-pop .18s ease-out}
 .toast-icon{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:8px;background:#1e6454;color:#ccffe9;font-size:18px;font-weight:800}
 .toast.warn .toast-icon{background:#765a2c;color:#fff0cf}
@@ -41,3 +41,38 @@
 @keyframes panel-pop{from{opacity:.35;transform:translateY(9px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:520px){.confirm-backdrop{padding:12px}.confirm-panel{padding:25px 19px;border-radius:15px}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.confirm-actions .button{min-width:0}.toast{left:12px;right:12px;max-width:none;bottom:14px}}
 @media(prefers-reduced-motion:reduce){.confirm-panel,.toast.show{animation:none!important}}
+
+/* v0.3.11 — autenticação nativa com primeiro acesso e sessões persistentes */
+[hidden]{display:none!important}
+.auth-screen{min-height:100dvh;display:grid;place-items:center;padding:28px 16px;background:radial-gradient(circle at 20% 10%,#1c4277 0,transparent 30%),radial-gradient(circle at 100% 80%,#102e50 0,transparent 36%),#091321}
+.auth-card{width:100%;max-width:470px;background:linear-gradient(150deg,#142840,#101e31);border:1px solid #30506c;border-radius:20px;padding:34px;box-shadow:0 25px 80px #0008}
+.auth-logo{display:grid;place-items:center;width:72px;height:72px;background:#1b3754;border-radius:19px;margin-bottom:20px}
+.auth-logo img{width:58px;height:58px}
+.auth-eyebrow{color:#7db8fe;font-size:10px;font-weight:800;letter-spacing:1.45px;margin-bottom:12px}
+.auth-card h1{font-size:27px;letter-spacing:-.9px;margin:0 0 8px;color:#f1f7ff}
+.auth-subtitle{color:#9eb5ce;line-height:1.65;margin:0 0 22px;font-size:13px}
+.auth-form{display:flex;flex-direction:column;gap:9px}
+.auth-form label{font-size:12px;color:#bbd0e8;font-weight:700;margin-top:11px}
+.auth-form .button{margin-top:18px;min-height:44px}
+.auth-help{padding:13px;border:1px solid #43638c;background:#193451;color:#c7dbf2;border-radius:10px;font-size:12px;line-height:1.7}
+.auth-foot{font-size:11px;color:#7892ae;line-height:1.65;margin:25px 0 0}
+.auth-notice{border-radius:9px;border:1px solid #ab5864;background:#482a38;color:#ffc7cf;padding:12px;margin-bottom:16px;font-size:12px;line-height:1.6}
+.network-row{padding:0;gap:0;min-width:0}
+.network-select{border:0;background:transparent;color:inherit;display:flex;align-items:center;gap:12px;padding:13px;min-width:0;text-align:left;flex:1;border-radius:11px}
+.network-select:hover{background:#ffffff08}
+.network-select .network-body{flex:1;min-width:0}
+.network-select>.icon{width:17px;color:#a6bed7}
+.network-disconnect{margin:0 11px 0 0;white-space:nowrap;min-height:36px;flex-shrink:0}
+.wifi-active-entry{display:flex;align-items:center;gap:12px;border:1px solid #2e4861;border-radius:11px;background:#172a41;padding:12px;margin-bottom:11px;min-width:0;flex-wrap:wrap}
+.wifi-active-entry>div{flex:1;min-width:130px}
+.wifi-active-entry strong{font-size:12px;display:block;overflow-wrap:anywhere}
+.wifi-active-entry small{font-size:11px;display:block;color:#9ab2cd;margin-top:5px}
+.wifi-active-entry .button{margin:0}
+.user-summary{display:flex;align-items:center;gap:14px;background:#172a41;border:1px solid #325375;border-radius:12px;padding:17px;margin-bottom:16px}
+.user-avatar{background:#21508a;color:#a6d3ff;border-radius:12px;padding:12px;display:grid;place-items:center}
+.user-summary small{color:#799bbd;font-size:10px;display:block;letter-spacing:1px;margin-bottom:7px;font-weight:800}
+.user-summary strong{font-size:16px}
+.wifi-dialog-panel .field-label{margin:19px 0 7px}
+.wifi-dialog-panel #wifiDialogDetail{line-height:1.5}
+.wifi-dialog-panel .hint{display:block;margin-top:7px}
+@media(max-width:680px){.network-row.current{flex-wrap:wrap}.network-disconnect{margin:0 13px 12px auto}.auth-card{padding:25px 21px}.network-select{width:100%;gap:9px}.network-bars{display:none}}

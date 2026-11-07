@@ -1,61 +1,37 @@
-# ZimaOS Network Manager — v0.3.10
+# ZimaOS Network Manager — v0.3.11
 
-Painel web de redes Wi-Fi, Ethernet, hotspot e status do NetworkManager em **Linux**. Interface visual com menu lateral, mensagens internas, listagem de hotspots ativos e opção de pará-los. **Não é um gerenciador de IP estático/DHCP:** a tela IP continua em modo de leitura.
+Painel web de rede para **Linux / NetworkManager** (Zorin OS e ZimaOS). Menu lateral, Wi-Fi, hotspot, compartilhamento e IP somente leitura. Sem suporte a Windows.
 
-> Atenção: esse contêiner controla a rede **do host** via D-Bus. Pode desconectar o servidor e a pessoa que está acessando remotamente. Não exponha a porta à internet. Use em rede local confiável ou VPN com HTTPS. O AppArmor é desabilitado *somente para esse contêiner*, reduzindo seu isolamento. Teste primeiro com acesso físico ao equipamento.
+## Novo na v0.3.11
 
-## Instalar no Zorin OS, diretamente do GitHub
+- **Primeiro acesso:** crie um usuário e senha diretamente pelo navegador (mínimo 12 caracteres). Para impedir que outra pessoa registre a conta antes de você, o cadastro exige um código **de uso único** exibido no log do contêiner na primeira inicialização.
+- **Login:** sessões de até 90 dias, renovadas durante uso, por cookie HttpOnly com SameSite Strict. A senha é protegida com PBKDF2-HMAC-SHA256 e sal aleatório; sessões são armazenadas como hashes no SQLite.
+- **Persistência:** a conta, as sessões e o código inicial não ficam dentro do contêiner descartável. São salvos em `/app/data` e montados no host.
+- **Wi-Fi:** clique sobre uma rede: abre a janela interna para informar a senha e conectar. Redes conectadas exibem **Desconectar**; não afeta hotspots via o botão de rede comum.
+- **Minha conta:** alterar senha, encerrar sessão. Ao mudar a senha, todas as sessões são revogadas.
+- **Sem PANEL_TOKEN:** retire essa variável de ambiente do Compose anterior.
+- Mensagens do próprio aplicativo, sem caixas `alert()` ou `confirm()` do navegador.
 
-Após publicar o repositório:
+## Instalação no ZimaOS
 
-```bash
-git clone https://github.com/lucassfontes/Network_Manager.git
-cd Network_Manager
-chmod +x iniciar.sh parar.sh
-./iniciar.sh
-```
+1. Envie a v0.3.11 ao GitHub, inclusive `.github/workflows/publicar-imagem.yml`.
+2. Em Actions, aguarde a publicação da imagem no GHCR como `ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.11`, depois deixe o package público.
+3. Importe o Compose em `deploy/zimaos-compose.yaml` na tela de aplicativo personalizado do ZimaOS.
+4. Confirme que o volume `/DATA/AppData/ZimaOSNetworkManager/config:/app/data` existe/pode ser gravado; o Docker normalmente cria a pasta. **Não apague a pasta ao atualizar**, pois ela guarda a conta.
+5. Abra `http://IP-DO-ZIMAOS:8687`. Se for a primeira instalação, abra os **logs do contêiner** no ZimaOS (ou execute `sudo docker logs --tail 40 zimaos-network-manager`) e copie o **código de instalação** mostrado; crie seu usuário e senha pelo formulário. Código de instalação não é um token de uso diário e é apagado depois do cadastro.
+6. Faça login. Nesse navegador, a sessão é persistente. O botão **Sair** encerra apenas a sessão atual.
 
-O script cria um token forte em `.env` se ele não existir, pede `sudo` se o Docker exigir, reconstrói a imagem e mantém o terminal aberto. Abrir **http://localhost:8080**. `./parar.sh` interrompe o contêiner. Docker Engine e `docker compose` devem estar instalados; requer Python 3 para gerar o token. Não adicione `.env` ao GitHub.
+**Atualização da v0.3.10:** a configuração antiga `PANEL_TOKEN` e `PANEL_REQUIRE_READ_TOKEN` não é mais usada. Seu token antigo **não cria uma conta automaticamente**. Configure a conta uma vez. Verifique que o volume foi montado antes de criar a conta.
 
-## Instalar diretamente na interface do ZimaOS (imagem GHCR)
+## Instalação no Zorin OS
 
-1. Publique os arquivos deste projeto em um repositório público **`lucassfontes/Network_Manager`**.
-2. No GitHub, abra **Actions → Publicar imagem Docker no GHCR**. O novo workflow executa automaticamente ao enviar alterações à `main`; aguarde a publicação de a imagem `ghcr.io/lucassfontes/zimaos-network-manager-linux:0.3.10`.
+Extraia o ZIP e execute `./iniciar.sh` (o terminal permanece aberto e mostra `http://localhost:8080`). A pasta `./data` guarda a conta. Para parar, use `./parar.sh`.
 
-**Workflow verde não garante publicação:** o workflow padrão `Docker Image CI` (se presente no repositório) faz apenas `docker build`. O que publica de verdade é o workflow `Publicar imagem Docker no GHCR` deste projeto. Se só aparecer `Docker Image CI`, confirme que `.github/workflows/publicar-imagem.yml` foi enviado para o GitHub.
+## Segurança e limitações
 
-**Ao atualizar o GitHub:** envie os arquivos extraídos para a **raiz** do repositório, incluindo a pasta oculta `.github`. O workflow dispara no push à branch `main`. Se a política do repositório bloquear execução ou pacotes, configure em Settings → Actions; confirme o resultado em Actions e em Packages.
-
-3. **Faça o pacote GHCR ficar público:** GitHub → Packages → imagem publicada → Package settings → Change visibility → Public. Sem isso, o ZimaOS pode receber erro `denied` ao fazer `pull`.
-4. Abra `deploy/zimaos-compose.yaml` e **troque o `PANEL_TOKEN` pelo seu próprio segredo aleatório com 24+ caracteres**. Por exemplo, gere no Linux com `openssl rand -hex 24`. Nunca publique seu Compose preenchido com o token.
-5. No ZimaOS: **Apps / App Center → Instalar aplicativo personalizado → Importar Compose** e cole o conteúdo do arquivo `deploy/zimaos-compose.yaml`, já com seu token. Verifique a imagem e instale.
-6. Acesse **`http://IP-DO-ZIMAOS:8687`** na sua rede local. Informe o mesmo token em **Acesso administrativo** antes de consultar os dados ou mudar conexões.
-
-O exemplo usa a porta **8687** para reduzir o risco de colisão com apps que usam 8080. Se a porta estiver ocupada, altere **PANEL_PORT** e **x-casaos.port_map** juntos. O IP é o do seu ZimaOS, não `localhost` no celular.
-
-**Importante:** o exemplo é uma *instalação personalizada*, não uma publicação automática na loja oficial do ZimaOS. A funcionalidade depende de NetworkManager e acesso D-Bus compatível no host. A criação/encerramento de hotspot não foi validada no seu hardware ZimaOS.
-
-## Como publicar no GitHub sem perder o controle de versão
-
-Para colocar os arquivos no repositório vazio a partir de um PC Linux:
-
-```bash
-git init
-git add .
-git commit -m "ZimaOS Network Manager v0.3.10"
-git branch -M main
-git remote add origin https://github.com/lucassfontes/Network_Manager.git
-git push -u origin main
-```
-
-Se publicar pelo navegador, **extraia o ZIP** e envie as pastas/arquivos, inclusive `.github/workflows/`. O ZIP inteiro enviado como anexo ao GitHub não é um repositório funcional. A pasta `.github` é oculta em alguns gerenciadores de arquivos.
-
-## Diagnóstico e segurança
-
-- `/api/health` testa o acesso ao NetworkManager; na instalação ZimaOS, precisa do cabeçalho `X-Panel-Token`.
-- Configurações de Wi-Fi e hotspot persistem no NetworkManager **do Linux host**, não dentro do contêiner. O token do Zorin fica no `.env`; o do ZimaOS está no Compose privado do usuário.
-- Não configurar redirecionamento de porta no roteador. HTTP puro não protege o token de interceptação em redes não confiáveis. Prefira VPN ou proxy HTTPS para uso remoto.
-- Se o host não usar NetworkManager ou bloquear D-Bus/Polkit, este contêiner não poderá controlar a rede. `network_mode: host` e o socket D-Bus são necessários para o funcionamento pretendido, mas dão privilégios sensíveis.
-- A versão do `nmcli` no contêiner vem do Debian 12 (série 1.42); não significa compatibilidade garantida com qualquer NetworkManager do host.
-- O `compose.yaml` da raiz é para desenvolvimento/instalação pelo GitHub com build local (porta 8080 local). O **`deploy/zimaos-compose.yaml`** é para importar no ZimaOS e baixar a imagem do GHCR (porta 8687 na rede, com token obrigatório também para consulta).
-- **Não foi realizado teste Docker real nesta máquina**. Tests unitários/simulados não substituem teste no Zorin/ZimaOS.
+- O contêiner controla a rede do **host** usando D-Bus com AppArmor desabilitado **somente dentro do contêiner**, reduzindo o isolamento. O Docker rodando como root também aumenta o risco.
+- **Não exponha 8687 à internet.** O Compose utiliza HTTP simples, adequado somente em LAN confiável. Para acesso remoto utilize túnel/VPN com HTTPS. Cookies podem ser capturados em redes hostis se não houver TLS; com HTTPS via proxy, configure `PANEL_SECURE_COOKIE=1`.
+- **Primeiro acesso exige código impresso nos logs**; somente o administrador do ZimaOS/Docker deve ver esse código. Se esquecer a senha, não existe recuperação pela internet: salve um backup seguro da pasta `config` ou faça recuperação local com acesso administrativo.
+- O hotspot pode derrubar o Wi-Fi atual; teste com acesso físico. O modo Wi-Fi + AP simultâneo ainda depende do driver.
+- Editar IP estático e DHCP continua **não implementado**; a tela IP é de consulta.
+- A v0.3.11 ainda precisa de testes de integração com hardware real e de publicação no GHCR.

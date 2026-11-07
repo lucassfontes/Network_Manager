@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## v0.3.11 — 07/11/2026
+- Primeiro acesso com usuário, senha e código de instalação de uso único nos logs Docker.
+- Removido PANEL_TOKEN; sessões persistentes por cookie HttpOnly com SQLite em volume.
+- Wi-Fi: clique na rede abre formulário interno de senha; rede conectada mostra Desconectar.
+- Minha conta: encerrar sessão e alterar senha; proteção de leitura e escrita por autenticação.
+- Compose do ZimaOS com `/DATA/AppData/ZimaOSNetworkManager/config:/app/data` e ícone preservado.
+
 ## v0.3.10 — 06/11/2026
 - Corrigido repositório de publicação para `lucassfontes/Network_Manager`.
 - Workflow de publicação GHCR agora executa em cada push na `main`, tags v* ou manualmente.
@@ -7,14 +14,17 @@
 - Ícone x-casaos apontando para o SVG no repositório real.
 - Versão sincronizada no painel, contêiner, scripts, README e testes.
 - Mantidas as proteções de token e o comportamento de rede; sem alterações nas funções de hotspot.
-
-## v0.3.10 — 06/11/2026
 - Projeto reorganizado para publicar no GitHub com `.gitignore`, `.dockerignore`, `.env.example`, e `VERSION` sincronizado.
 - Workflow GitHub Actions para compilar/publicar imagem no GHCR (tag 0.3.10 e latest); necessita execução e imagem pública.
 - Compose separado para instalar como aplicativo personalizado no ZimaOS com ícone azul Wi-Fi, metadados x-casaos e porta padrão 8687.
 - Acesso ao painel ZimaOS pela LAN, exigindo token também em todas as consultas à API; bloqueia servidor sem configuração protegida.
 - Servidor web agora aceita `PANEL_BIND_HOST`, `PANEL_PORT` e `PANEL_REQUIRE_READ_TOKEN`; Zorin continua local por padrão.
 - Mantidos menus, mensagens internas, detecção de rede e operações Wi-Fi/hotspot. Instalação real no ZimaOS ainda não testada.
+
+## v0.3.9 — 06/11/2026
+- Preparação para publicar o projeto no GitHub e instalar pelo ZimaOS.
+- Adicionados workflow GHCR, Compose para ZimaOS, metadados de aplicativo e ícone azul Wi-Fi.
+- Acesso local por token no ZimaOS; substituído por usuário e senha na v0.3.11.
 
 ## v0.3.8 — 05/11/2026
 - Todas as confirmações de ações de rede agora aparecem numa janela do próprio sistema, com nome da ação, Cancelar e Confirmar.
@@ -37,10 +47,9 @@
 - Base Docker fixada em Debian 12 Bookworm: nmcli 1.42.x em vez de 1.52.x do Debian 13, para evitar envio da propriedade `mac-address-denylist` desconhecida pelo NetworkManager 1.46 do Zorin.
 - Imagem Docker identificada por versão; reconstrução e recriação do contêiner ao iniciar para impedir uso de imagem antiga.
 - Mensagem de diagnóstico quando o erro de propriedade incompatível persistir.
-- Scripts, versão exibida e arquivos do projeto atualizados para v0.3.7.
+- Scripts, versão exibida e arquivos do projeto atualizados para v0.3.6.
 - Sem reiniciar o NetworkManager do host nem alterar a configuração da rede existente.
 - Testes locais de código/sintaxe; imagem não compilada no Docker deste ambiente.
-
 
 ## v0.3.5 — 05/11/2026
 - Novo caminho de criação do hotspot: perfil Wi-Fi explícito, modo AP, SSID, senha e IPv4 compartilhado.
@@ -84,3 +93,4 @@
 ## v0.3 — Protótipo de interface e detecção
 - Interface HTML e rotas de dispositivos, Wi-Fi, hotspot e status.
 - Uso em Linux com NetworkManager, com limitações de compatibilidade e segurança.
+

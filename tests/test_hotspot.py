@@ -5,13 +5,6 @@ from fastapi import HTTPException
 from app import main
 
 class HotspotTests(unittest.TestCase):
-    def setUp(self):
-        self.previous = main.TOKEN
-        main.TOKEN = 'token-teste-aleatorio-com-mais-24-caracteres'
-
-    def tearDown(self):
-        main.TOKEN = self.previous
-
     def example(self):
         return main.Hotspot(device='wlp5s0', ssid='Minha Rede', password='SenhaSegura123')
 
@@ -21,7 +14,7 @@ class HotspotTests(unittest.TestCase):
             calls.append(args)
             return 'wlp5s0:wifi\n' if 'status' in args else 'OK'
         with patch.object(main,'cmd',side_effect=fake):
-            result=main.hotspot(self.example(),x_panel_token='token-teste-aleatorio-com-mais-24-caracteres')
+            result=main.hotspot(self.example())
         self.assertIn('connection',result)
         self.assertEqual(len(calls),4)
         _,add,modify,up=calls
@@ -39,22 +32,21 @@ class HotspotTests(unittest.TestCase):
             if 'up' in args: raise HTTPException(400,'Hotspot nao suportado')
             return 'OK'
         with patch.object(main,'cmd',side_effect=fake):
-            with self.assertRaises(HTTPException): main.hotspot(self.example(),x_panel_token='token-teste-aleatorio-com-mais-24-caracteres')
+            with self.assertRaises(HTTPException): main.hotspot(self.example())
         self.assertEqual(len(calls),5)
         self.assertEqual(calls[-1][1:4],('connection','delete','id'))
         self.assertEqual(calls[-1][-1],calls[1][calls[1].index('con-name')+1])
 
-    def test_invalid_token_cannot_change_network(self):
-        with patch.object(main,'cmd') as fake:
+    def test_device_validation_still_blocks_unknown_adapter(self):
+        with patch.object(main,'cmd',return_value='wlp5s0:wifi\n'):
             with self.assertRaises(HTTPException) as err:
-                main.hotspot(self.example(),x_panel_token='incorreto')
-        self.assertEqual(err.exception.status_code,401)
-        fake.assert_not_called()
+                main.hotspot(main.Hotspot(device='unknown0',ssid='Teste',password='SenhaSegura123'))
+        self.assertEqual(err.exception.status_code,404)
 
     def test_utf8_ssid_limit(self):
         with patch.object(main,'cmd',return_value='wlp5s0:wifi\n') as fake:
             with self.assertRaises(HTTPException) as err:
-                main.hotspot(main.Hotspot(device='wlp5s0',ssid='a'*31+'é',password='senha1234'),x_panel_token='token-teste-aleatorio-com-mais-24-caracteres')
+                main.hotspot(main.Hotspot(device='wlp5s0',ssid='a'*31+'é',password='senha1234'))
         self.assertEqual(err.exception.status_code,400)
         self.assertEqual(fake.call_count,1)
 

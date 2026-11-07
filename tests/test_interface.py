@@ -1,12 +1,14 @@
 """Testes da interface e parsing; execução sem acesso ao hardware."""
 import unittest
+from tests.auth_fixtures import AuthTestCase
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app import main
 
-class InterfaceTests(unittest.TestCase):
+class InterfaceTests(AuthTestCase):
     def setUp(self):
-        self.client = TestClient(main.app)
+        super().setUp()
+        self.setup_account()
 
     def test_html_and_assets_return_without_networkmanager(self):
         html = self.client.get('/')
@@ -51,8 +53,8 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(result.json()['dns'], ['1.1.1.1'])
         self.assertEqual(result.json()['gateway'], '192.168.1.1')
 
-    def test_write_operations_still_require_token(self):
+    def test_write_operations_require_csrf(self):
         response = self.client.post('/api/disconnect',json={'device':'wlp5s0'})
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
 if __name__ == '__main__': unittest.main()

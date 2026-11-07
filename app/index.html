@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1425">
   <meta name="description" content="Painel local para visualizar e administrar as interfaces de rede do Linux com NetworkManager.">
-  <title>Gerenciador de Rede Linux · v0.3.10</title>
+  <title>Gerenciador de Rede Linux · v0.3.11</title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
-  <link rel="stylesheet" href="/assets/app.css?v=0.3.10">
-  <script src="/assets/app.js?v=0.3.10" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=0.3.11">
+  <script src="/assets/app.js?v=0.3.11" defer></script>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -32,7 +32,31 @@
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-9 11h7l-1 9 10-12h-7l0-8Z"/></symbol>
 </svg>
-<div class="app-shell">
+
+<section id="authView" class="auth-screen" aria-label="Acesso ao painel">
+  <div class="auth-card">
+    <div class="auth-logo"><img src="/assets/icon.svg" width="58" height="58" alt="Ícone do gerenciador"></div>
+    <div class="auth-eyebrow">ZIMAOS NETWORK MANAGER · v0.3.11</div>
+    <h1 id="authTitle">Acessar o painel</h1>
+    <p class="auth-subtitle" id="authSubtitle">Entre com seu usuário e senha para gerenciar suas redes.</p>
+    <div class="auth-notice" id="authNotice" role="alert" hidden></div>
+    <form id="loginForm" class="auth-form" novalidate hidden>
+      <label for="loginUsername">Usuário</label><input id="loginUsername" class="field-input" autocomplete="username" required maxlength="32" placeholder="Seu usuário">
+      <label for="loginPassword">Senha</label><input id="loginPassword" class="field-input" type="password" autocomplete="current-password" required placeholder="Sua senha">
+      <button class="button button-primary button-wide" type="submit">Entrar no painel</button>
+    </form>
+    <form id="setupForm" class="auth-form" novalidate hidden>
+      <div class="auth-help">Primeiro acesso: crie seu administrador. O código de instalação aparece nos <strong>logs do contêiner</strong> no ZimaOS e será usado uma única vez.</div>
+      <label for="setupCode">Código de instalação (logs do Docker)</label><input id="setupCode" class="field-input" autocomplete="off" required maxlength="100" placeholder="Cole o código de primeiro acesso">
+      <label for="setupUsername">Novo usuário</label><input id="setupUsername" class="field-input" autocomplete="username" required minlength="3" maxlength="32" placeholder="Ex.: administrador">
+      <label for="setupPassword">Crie uma senha (mínimo 12 caracteres)</label><input id="setupPassword" class="field-input" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Senha forte">
+      <label for="setupPasswordConfirm">Confirme a senha</label><input id="setupPasswordConfirm" class="field-input" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Repita sua senha">
+      <button class="button button-primary button-wide" type="submit">Criar conta e entrar</button>
+    </form>
+    <p class="auth-foot">Sua sessão continua ativa neste navegador por até 90 dias sem uso. Não exponha o painel à internet.</p>
+  </div>
+</section>
+<div class="app-shell" id="appShell" hidden>
   <div class="mobile-shade" id="mobileShade"></div>
   <aside class="sidebar" id="sidebar">
     <div class="brand">
@@ -50,18 +74,18 @@
       <div class="sidebar-label compact">FERRAMENTAS</div>
       <button class="nav-link" data-page="ip"><svg class="icon"><use href="#i-sliders"/></svg><span>Endereços IP</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
       <button class="nav-link" data-page="status"><svg class="icon"><use href="#i-code"/></svg><span>Diagnóstico</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
-      <button class="nav-link" data-page="settings"><svg class="icon"><use href="#i-lock"/></svg><span>Acesso administrativo</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <button class="nav-link" data-page="settings"><svg class="icon"><use href="#i-lock"/></svg><span>Minha conta</span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
     </nav>
     <div class="sidebar-bottom">
-      <div class="sidebar-safety"><svg class="icon"><use href="#i-lock"/></svg><div><strong>Acesso protegido</strong><small>No ZimaOS, use token na rede local.</small></div></div>
-      <div class="sidebar-version"><span>Linux · Docker</span><strong>v0.3.10</strong></div>
+      <div class="sidebar-safety"><svg class="icon"><use href="#i-lock"/></svg><div><strong>Acesso protegido</strong><small>Sessão protegida por usuário e senha.</small></div></div>
+      <div class="sidebar-version"><span>Linux · Docker</span><strong>v0.3.11</strong></div>
     </div>
   </aside>
 
   <main class="main">
     <header class="topbar">
       <div class="topbar-left"><button class="icon-button menu-button" id="menuBtn" aria-label="Abrir menu"><svg class="icon"><use href="#i-menu"/></svg></button><span class="breadcrumb">PAINEL DE REDE</span><svg class="icon breadcrumb-sep"><use href="#i-chevron"/></svg><strong id="currentPageLabel">Visão geral</strong></div>
-      <div class="topbar-right"><span class="top-connection" id="topConnection"><i class="pulse"></i> Verificando conexão</span><button class="button button-ghost button-small" id="refreshAll"><svg class="icon"><use href="#i-refresh"/></svg><span>Atualizar</span></button></div>
+      <div class="topbar-right"><button class="button button-ghost button-small" id="userBadge" type="button" data-goto="settings">Minha conta</button><span class="top-connection" id="topConnection"><i class="pulse"></i> Verificando conexão</span><button class="button button-ghost button-small" id="refreshAll"><svg class="icon"><use href="#i-refresh"/></svg><span>Atualizar</span></button></div>
     </header>
     <div class="content">
       <div class="page-head"><div><span class="eyebrow">REDE DO SEU COMPUTADOR</span><h1 id="pageTitle">Visão geral</h1><p id="pageSubtitle">Acompanhe suas conexões e os dispositivos disponíveis, sem informações complicadas.</p></div><div class="last-sync">Atualizado: <span id="lastSync">aguardando...</span></div></div>
@@ -83,9 +107,9 @@
 
       <section class="page" id="page-devices"><div class="panel"><div class="panel-head"><div><h2>Placas físicas</h2><p>Wi-Fi, Ethernet e adaptadores USB detectados automaticamente</p></div><button class="button button-secondary button-small" data-refresh="devices"><svg class="icon"><use href="#i-refresh"/></svg> Atualizar</button></div><div class="device-grid" id="physicalDevices"><div class="loading">Carregando...</div></div></div><div class="panel minor-panel"><details><summary>Interfaces virtuais e internas <span id="virtualCount">(0)</span></summary><p class="hint">Itens como docker0, lo e Wi-Fi P2P são componentes do Linux. Eles não são placas físicas adicionais.</p><div id="virtualDevices" class="virtual-list"></div></details></div></section>
 
-      <section class="page" id="page-wifi"><div class="split-grid"><div class="panel"><div class="panel-head"><div><h2>Redes encontradas</h2><p>Selecione uma rede para preencher os dados de conexão</p></div><button class="button button-secondary button-small" id="scanBtn"><svg class="icon"><use href="#i-refresh"/></svg> Procurar</button></div><label class="field-label" for="scanDevice">Placa Wi-Fi utilizada na busca</label><select id="scanDevice" class="field-input"><option value="">Todas as placas Wi-Fi</option></select><div id="wifiNetworks" class="networks-list"><div class="loading">Procurando redes disponíveis...</div></div></div><div class="panel form-panel"><div class="panel-head"><div><h2>Conectar ao Wi-Fi</h2><p>Informe os dados da rede escolhida</p></div></div><form id="wifiForm" novalidate><label class="field-label" for="wifiDevice">Placa de rede</label><select id="wifiDevice" class="field-input" required></select><label class="field-label" for="wifiSsid">Nome da rede (SSID)</label><input id="wifiSsid" class="field-input" placeholder="Escolha uma rede ao lado" required maxlength="128"><label class="field-label" for="wifiPassword">Senha da rede</label><div class="password-row"><input id="wifiPassword" class="field-input" type="password" autocomplete="off" placeholder="Deixe em branco para rede aberta"><button type="button" class="password-toggle" data-toggle-password="wifiPassword" aria-label="Mostrar ou ocultar senha"><svg class="icon"><use href="#i-eye"/></svg></button></div><button class="button button-primary button-wide" type="submit"><svg class="icon"><use href="#i-wifi"/></svg> Conectar</button><button type="button" class="button button-danger-outline button-wide" id="disconnectBtn">Desconectar placa selecionada</button></form><div class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Conectar ou desconectar pode interromper sua conexão atual.</span></div></div></div></section>
+      <section class="page" id="page-wifi"><div class="split-grid"><div class="panel"><div class="panel-head"><div><h2>Redes encontradas</h2><p>Toque na rede e conecte com a senha</p></div><button class="button button-secondary button-small" id="scanBtn"><svg class="icon"><use href="#i-refresh"/></svg> Procurar</button></div><label class="field-label" for="scanDevice">Placa Wi-Fi utilizada na busca</label><select id="scanDevice" class="field-input"><option value="">Todas as placas Wi-Fi</option></select><div id="wifiNetworks" class="networks-list"><div class="loading">Procurando redes disponíveis...</div></div></div><div class="panel form-panel"><div class="panel-head"><div><h2>Conexão Wi-Fi</h2><p>Seus dispositivos conectados e os atalhos</p></div></div><div id="wifiCurrent" class="wifi-current"><div class="loading">Verificando Wi-Fi...</div></div><div class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Ao trocar de rede ou desconectar, você pode perder o acesso ao ZimaOS. Verifique antes de confirmar.</span></div><p class="hint">Escolha uma rede na lista. Para redes protegidas, a senha será solicitada dentro do aplicativo. Não guardamos senhas Wi-Fi no navegador.</p></div></div></section>
 
-      <section class="page" id="page-hotspot">
+            <section class="page" id="page-hotspot">
         <div class="panel hotspot-active-panel">
           <div class="panel-head">
             <div><h2>Hotspots em funcionamento</h2><p>Desligue apenas o ponto de acesso escolhido, sem apagar o perfil salvo.</p></div>
@@ -101,9 +125,9 @@
 
       <section class="page" id="page-status"><div class="split-grid"><div class="panel"><div class="panel-head"><div><h2>Estado do NetworkManager</h2><p>Diagnóstico simplificado do serviço do Linux</p></div><button class="button button-secondary button-small" data-refresh="status"><svg class="icon"><use href="#i-refresh"/></svg> Verificar</button></div><div class="health-display" id="healthDisplay"><div class="loading">Verificando serviço...</div></div><div class="info-pairs stacked"><div><small>ROTA DE INTERNET</small><strong id="statusRoute">—</strong></div></div></div><div class="panel"><div class="panel-head"><div><h2>Conexões ativas</h2><p>Conexões que o Linux considera em uso</p></div></div><div class="connections-list" id="connectionsList"><div class="loading">Carregando conexões...</div></div></div></div></section>
 
-      <section class="page" id="page-settings"><div class="split-grid"><div class="panel form-panel"><div class="panel-head"><div><h2>Autorização para alterações</h2><p>Necessária para alterar a rede e consultar dados no ZimaOS</p></div></div><label class="field-label" for="adminToken">Token de administração</label><div class="password-row"><input id="adminToken" class="field-input" type="password" autocomplete="off" placeholder="Cole PANEL_TOKEN do arquivo .env"><button type="button" class="password-toggle" data-toggle-password="adminToken" aria-label="Mostrar ou ocultar token"><svg class="icon"><use href="#i-eye"/></svg></button></div><button class="button button-primary button-wide" id="saveToken"><svg class="icon"><use href="#i-check"/></svg> Usar token nesta aba</button><button class="button button-secondary button-wide" id="clearToken">Esquecer token desta aba</button><div class="capability" id="tokenState">Nenhum token configurado para esta aba.</div></div><div class="panel explainer-panel"><div class="explainer-icon"><svg class="icon"><use href="#i-lock"/></svg></div><h2>Onde encontrar o token?</h2><p>Abra a pasta onde você extraiu o projeto e localize o arquivo oculto <code>.env</code>. Copie somente o valor depois de <code>PANEL_TOKEN=</code>.</p><div class="notice"><svg class="icon"><use href="#i-alert"/></svg><span>Não envie esse token para outras pessoas. Ele autoriza mudanças na rede do computador. No ZimaOS, a rede local exige token também para consultas. Não exponha a porta à internet.</span></div></div></div></section>
+      <section class="page" id="page-settings"><div class="split-grid"><div class="panel form-panel"><div class="panel-head"><div><h2>Minha conta</h2><p>Seus dados e a sessão deste navegador</p></div></div><div class="user-summary"><span class="user-avatar"><svg class="icon"><use href="#i-lock"/></svg></span><div><small>USUÁRIO CONECTADO</small><strong id="currentUsername">—</strong></div></div><div class="capability good">Você permanece conectado neste navegador por até 90 dias sem usar o painel. Não é necessário colocar um token em cada acesso.</div><button type="button" class="button button-danger-outline button-wide" id="logoutBtn">Sair deste dispositivo</button></div><div class="panel form-panel"><div class="panel-head"><div><h2>Alterar senha</h2><p>A nova senha será aplicada à sua conta</p></div></div><form id="passwordForm" novalidate><label class="field-label" for="currentPassword">Senha atual</label><input id="currentPassword" class="field-input" type="password" autocomplete="current-password" required><label class="field-label" for="newPassword">Nova senha (mínimo 12 caracteres)</label><input id="newPassword" class="field-input" type="password" autocomplete="new-password" minlength="12" required><label class="field-label" for="confirmNewPassword">Confirmar nova senha</label><input id="confirmNewPassword" class="field-input" type="password" autocomplete="new-password" minlength="12" required><button type="submit" class="button button-primary button-wide">Salvar nova senha</button></form><div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>Ao mudar a senha, todas as sessões serão encerradas e será necessário entrar novamente.</span></div></div></div></section>
 
-      <footer class="footer"><span>ZimaOS Network Manager <strong>v0.3.10</strong></span><span>Linux · NetworkManager · Acesso local</span></footer>
+      <footer class="footer"><span>ZimaOS Network Manager <strong>v0.3.11</strong></span><span>Linux · NetworkManager · Acesso local</span></footer>
     </div>
   </main>
 </div>
@@ -120,6 +144,27 @@
       <button type="button" class="button button-secondary" id="confirmCancel">Cancelar</button>
       <button type="button" class="button button-primary" id="confirmAccept">Confirmar</button>
     </div>
+  </div>
+</div>
+
+<!-- Janela própria de conexão Wi-Fi, sem prompt ou alert do navegador -->
+<div id="wifiDialog" class="confirm-backdrop" hidden>
+  <div class="confirm-panel wifi-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="wifiDialogTitle">
+    <button type="button" class="confirm-close" id="wifiDialogClose" aria-label="Fechar">×</button>
+    <div class="confirm-symbol"><svg class="icon"><use href="#i-wifi"/></svg></div>
+    <span class="confirm-eyebrow" id="wifiDialogEyebrow">REDE WI-FI</span>
+    <h2 id="wifiDialogTitle">Conectar a uma rede</h2>
+    <p id="wifiDialogDetail"></p>
+    <form id="wifiDialogForm" novalidate>
+      <label class="field-label" for="wifiDialogDevice">Placa Wi-Fi</label>
+      <select class="field-input" id="wifiDialogDevice"></select>
+      <div id="wifiDialogPasswordContainer">
+        <label class="field-label" for="wifiDialogPassword">Senha da rede</label>
+        <div class="password-row"><input id="wifiDialogPassword" class="field-input" type="password" autocomplete="off" placeholder="Digite a senha da rede"><button type="button" class="password-toggle" id="wifiDialogPasswordToggle" aria-label="Mostrar ou ocultar senha"><svg class="icon"><use href="#i-eye"/></svg></button></div>
+        <small class="hint">Se a rede já estiver salva no Linux, você pode tentar sem digitar a senha.</small>
+      </div>
+      <div class="confirm-actions"><button type="button" class="button button-secondary" id="wifiDialogCancel">Cancelar</button><button type="submit" class="button button-primary" id="wifiDialogSubmit">Conectar</button></div>
+    </form>
   </div>
 </div>
 </body>

@@ -3,7 +3,7 @@
 # mac-address-denylist ao daemon 1.46 do Zorin e falha ao criar hotspot.
 FROM python:3.12-slim-bookworm
 LABEL org.opencontainers.image.title="ZimaOS Network Manager" \
-      org.opencontainers.image.version="0.3.10"
+      org.opencontainers.image.version="0.3.11"
 WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends network-manager iw iproute2 \
